@@ -91,13 +91,13 @@ class Params:
     # Accept blocks timestamped as being from the future, up to this amount.
     MAX_FUTURE_BLOCK_TIME = (60 * 60 * 2)
 
-    # The number of Belushis per coin. #realname COIN
-    BELUSHIS_PER_COIN = int(100e6)
+    # The number of LET per coin. #realname COIN
+    LET_PER_COIN = int(100e6)
 
     TOTAL_COINS = 21_000_000
 
-    # The maximum number of Belushis that will ever be found.
-    MAX_MONEY = BELUSHIS_PER_COIN * TOTAL_COINS
+    # The maximum number of Lets that will ever be found.
+    MAX_MONEY = LET_PER_COIN * TOTAL_COINS
 
     # The duration we want to pass between blocks being found, in seconds.
     # This is lower than Bitcoin's configuation (10 * 60).
@@ -150,7 +150,7 @@ class TxIn(NamedTuple):
 
 class TxOut(NamedTuple):
     """Outputs from a Transaction."""
-    # The number of Belushis this awards.
+    # The number of LET this awards.
     value: int
 
     # The public key of the owner of this Txn.
