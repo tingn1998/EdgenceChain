@@ -121,7 +121,7 @@ class Params:
 
     # The number of right-shifts applied to 2 ** 256 in order to create the
     # initial difficulty target necessary for mining a block.
-    INITIAL_DIFFICULTY_BITS = 12
+    INITIAL_DIFFICULTY_BITS = 24
 
     # The number of blocks after which the mining subsidy will halve.
     #
