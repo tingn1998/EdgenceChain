@@ -628,7 +628,7 @@ def get_block_subsidy() -> int:
     if halvings >= 64:
         return 0
 
-    return 50 * Params.BELUSHIS_PER_COIN // (2 ** halvings)
+    return 50 * Params.LET_PER_COIN // (2 ** halvings)
 
 
 # Signal to communicate to the mining thread that it should stop mining because
