@@ -107,7 +107,7 @@ def send_value(args: dict):
 
 def send_msg(data: bytes, node_hostname=None, port=None):
     node_hostname = getattr(send_msg, 'node_hostname', 'localhost')
-    port = getattr(send_msg, 'port', 9999)
+    port = int(getattr(send_msg, 'port', 9999)) #getattr returns string or int
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((node_hostname, port))
