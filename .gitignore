@@ -1,4 +1,6 @@
 .idea
+seeds.node
+chain.dat
 __pycache__
 ds/__pycache__
 consensus/__pycache__
