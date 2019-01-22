@@ -5,6 +5,7 @@ from ds.UTXO_Set import UTXO_Set
 from p2p.Peer import Peer
 from params.Params import Params
 from utils.Utils import Utils
+from ds.BaseBlockChain import BaseBlockChain
 
 import logging
 import os
@@ -17,7 +18,9 @@ logging.basicConfig(
     format='[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
 
-class BlockChain(object):
+
+
+class BlockChain(BaseBlockChain):
 
     def __init__(self, idx: int=0, chain: Iterable[Block]=[]):
         self.index = idx
@@ -65,7 +68,7 @@ class BlockChain(object):
         return self.chain.pop()
 
     # connect_block: block,active_chain, side_branches, mempool, utxo_set, mine_interrupt, peers
-    def connect_block(self, block: Block, active_chain: object, side_branches: Iterable[object],\
+    def connect_block(self, block: Block, active_chain: BaseBlockChain, side_branches: Iterable[BaseBlockChain],\
                       mempool: MemPool, utxo_set:UTXO_Set, mine_interrupt: threading.Event,\
                       peers: Iterable[Peer], doing_reorg=False) -> bool:
         """Accept a block and return the chain index we append it to."""

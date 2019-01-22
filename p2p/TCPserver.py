@@ -250,7 +250,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         if _peer != peer:
                             Utils.send_to_peer(Message(Actions.TxRev, txn, Params.PORT_CURRENT), _peer)
         else:
-            logger.info(f'[p2p] {txn} is not a Transaction object in handleTxRev')
+            logger.info(f'[p2p] {txn} is not a Transaction instance in handleTxRev')
             return
 
     def handleBlockRev(self, block: Block, peer: Peer):

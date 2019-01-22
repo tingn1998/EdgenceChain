@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class Wallet(object):
 	"""
-	wallet = Wallet.init_wallet('wallet.dat')  # return an object using the path
+	wallet = Wallet.init_wallet('wallet.dat')  # return an instance using the path
 	wallet2 = Wallet(wallet())   #wallet() returns three parameters of a wallet
 	"""
 

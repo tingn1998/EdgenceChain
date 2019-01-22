@@ -13,7 +13,7 @@ from ds.UnspentTxOut import UnspentTxOut
 from ds.UTXO_Set import UTXO_Set
 from ds.TxIn import TxIn
 from ds.TxOut import TxOut
-
+from ds.BaseMemPool import BaseMemPool
 
 
 
@@ -74,9 +74,9 @@ class Transaction(NamedTuple):
 
     def validate_txn(self,
                      utxo_set: UTXO_Set,
-                     mempool: object,
+                     mempool: BaseMemPool,
                      as_coinbase: bool = False,
-                     siblings_in_block: Iterable[NamedTuple] = None,  #object
+                     siblings_in_block: Iterable[NamedTuple] = None,
                      allow_utxo_from_mempool: bool = True,
                      ) -> bool:
         """
