@@ -29,10 +29,7 @@ class Message(NamedTuple):
     data: Union[str, Iterable[Block], Iterable[UnspentTxOut], int, Transaction, Block, Iterable[Peer]]
     port: Union[None, int] = None
 
-if __name__ == "__main__":
 
-    message = Message(0, 'avcdsd')
-    print(message)
 
 
 

@@ -161,6 +161,12 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
         return chain_idx
 
+    def sendPeerExtend(self):
+        peer_samples = random.sample(self.peers, min(5, len(self.peers)))
+        for _peer in self.peers:
+            logger.info(f"[p2p] sending {len(peer_samples)} peers to {_peer}")
+            Utils.send_to_peer(Message(Actions.PeerExtend, peer_samples, Params.PORT_CURRENT), _peer)
+
     def handleBlockSyncReq(self, blockid: str, peer: Peer):
         with self.chain_lock:
             height = self.locate_block(blockid, self.active_chain)[1]
@@ -304,8 +310,3 @@ class TCPHandler(socketserver.BaseRequestHandler):
             logger.info(f'[p2p] add peer {peer_sample} into peer list')
             Peer.save_peers(self.peers)
 
-    def sendPeerExtend(self):
-        peer_samples = random.sample(self.peers, len(self.peers))
-        for _peer in self.peers:
-            logger.info(f"[p2p] sending {len(peer_samples)} peers to {_peer}")
-            Utils.send_to_peer(Message(Actions.PeerExtend, peer_samples, Params.PORT_CURRENT), _peer)
