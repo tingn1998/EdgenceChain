@@ -4,7 +4,7 @@ from typing import (
 from ds.Block import Block
 from ds.Transaction import Transaction
 from ds.UnspentTxOut import UnspentTxOut
-from p2p import Peer
+from p2p.Peer import Peer
 
 from enum import Enum, unique
 
