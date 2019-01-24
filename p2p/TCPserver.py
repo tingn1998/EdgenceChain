@@ -79,9 +79,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
         gs = dict()
-        gs['Block'], gs['Transaction'], gs['UnspentTxOut'], gs['Message'], gs['TxIn'], gs['TxOut'] = globals()['Block'], \
+        gs['Block'], gs['Transaction'], gs['UnspentTxOut'], gs['Message'], gs['TxIn'], gs['TxOut'], gs['Peer'] = \
+                    globals()['Block'], \
                     globals()['Transaction'], globals()['UnspentTxOut'], globals()['Message'], \
-                    globals()['TxIn'], globals()['TxOut']
+                    globals()['TxIn'], globals()['TxOut'], globals()['Peer']
         try:
             message = Utils.read_all_from_socket(self.request, gs)
         except:
@@ -117,6 +118,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
             self.handleTxRev(message.data, peer)
         elif action == Actions.BlockRev:
             self.handleBlockRev(message.data, peer)
+        elif action == Actions.PeerExtend:
+            self.handlePeerExtendGet(message.data, peer)
         else:
             logger.exception(f'[p2p] received unwanted action request ')
 
@@ -174,6 +177,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 self.peers.append(peer)
                 logger.info(f'[p2p] add peer {peer} into peer list')
                 Peer.save_peers(self.peers)
+                self.sendPeerExtend()
 
     def handleBlockSyncGet(self, blocks: Iterable[Block], peer: Peer):
         logger.info(f"[p2p] recieve BlockSyncGet with {len(blocks)} blocks from {peer}")
@@ -264,6 +268,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         self.peers.append(peer)
                         logger.info(f'[p2p] add peer {peer} into peer list')
                         Peer.save_peers(self.peers)
+                        self.sendPeerExtend()
 
                     if chain_idx == Params.ACTIVE_CHAIN_IDX:
                         self.active_chain.connect_block(block, self.active_chain, self.side_branches, \
@@ -284,3 +289,23 @@ class TCPHandler(socketserver.BaseRequestHandler):
         else:
             logger.info(f'[p2p] {block} is not a Block')
 
+    def handlePeerExtendGet(self, peer_samples: Iterable[Peer], peer: Peer):
+        logger.info(f"[p2p] received {len(peer_samples)} peers from peer {peer}")
+        peer_samples.append(peer)
+        for peer_sample in peer_samples:
+            if not isinstance(peer_sample, Peer):
+                continue
+            if peer_sample.ip == '127.0.0.1' and peer_sample.port == Params.PORT_CURRENT or \
+                peer_sample.ip == 'localhost' and peer_sample.port == Params.PORT_CURRENT:
+                continue
+            if peer_sample in self.peers:
+                continue
+            self.peers.append(peer_sample)
+            logger.info(f'[p2p] add peer {peer_sample} into peer list')
+            Peer.save_peers(self.peers)
+
+    def sendPeerExtend(self):
+        peer_samples = random.sample(self.peers, len(self.peers))
+        for _peer in self.peers:
+            logger.info(f"[p2p] sending {len(peer_samples)} peers to {_peer}")
+            Utils.send_to_peer(Message(Actions.PeerExtend, peer_samples, Params.PORT_CURRENT), _peer)
