@@ -1,6 +1,10 @@
 class BaseBlockChain(object):
 
 
+    def __init__(self, idx: int=0, chain = []):
+        self.index = idx
+        self.chain = chain
+
     @property
     def height(self):
         pass
@@ -11,7 +15,6 @@ class BaseBlockChain(object):
 
     def find_txout_for_txin(self, txin):
         pass
-
 
     def disconnect_block(self, mempool, utxo_set):
         pass

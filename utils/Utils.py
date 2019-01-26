@@ -101,6 +101,7 @@ class Utils(object):
             return False
 
         while tries_left > 0:
+            #logger.info(f'[utils] begin to create socket connection with peer {peer}' )
             try:
                 with socket.create_connection(peer(), timeout=1) as s:
                     s.sendall(cls.encode_socket_data(data))
