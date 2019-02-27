@@ -77,12 +77,14 @@ class Utils(object):
     @classmethod
     def encode_chain_data(cls, chain: Iterable[NamedTuple]) -> bytes:
         """Our protocol is: first 4 bytes signify msg length."""
-        def int_to_8bytes(a: int) -> bytes:
-            return binascii.unhexlify(f"{a:0{8}x}")
+        def int_to_20bytes(a: int) -> bytes:
+            int_str = str(a)
+            int_str = '0'*(20 - len(int_str)) + int_str
+            return int_str.encode()
         block_len = len(chain)
         to_send = cls.serialize(chain).encode()
         msg_len = len(to_send)
-        return int_to_8bytes(block_len) + int_to_8bytes(msg_len) + to_send
+        return int_to_20bytes(block_len) + int_to_20bytes(msg_len) + to_send
 
     @classmethod
     def encode_socket_data(cls, data: object) -> bytes:

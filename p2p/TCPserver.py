@@ -167,7 +167,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     if not TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, self.side_branches, \
                                                     self.mempool, self.utxo_set, self.mine_interrupt, self.peers):
                         return None
-                elif chain_idx <= -1:
+                elif chain_idx is not None and chain_idx <= -1:
                     logger.info(f'[p2p] orphan or wrong block {block.id}')
                     break
                 else:
@@ -256,7 +256,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                     mempool, utxo_set, mine_interrupt, peers)
 
         if connect_block_success is not False:
-            Persistence.save_to_disk(active_chain)
+            if len(active_chain.chain)%20 == 0 or len(active_chain.chain) <= 5:
+                Persistence.save_to_disk(active_chain)
 
             if connect_block_success is not True: # -1
                 logger.info(f'[p2p] a successful reorg is found, begin to deal with {len(side_branches)} side branches')

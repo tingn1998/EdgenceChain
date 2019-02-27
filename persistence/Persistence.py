@@ -74,9 +74,9 @@ def load_from_disk(active_chain: BlockChain, utxo_set: UTXO_Set, CHAIN_PATH=Para
             return
     try:
         with open(CHAIN_PATH, "rb") as f:
-            block_len = int(binascii.hexlify(f.read(4) or b'\x00'), 16)
+            block_len = int(f.read(20))
             logger.info(f'[persistence] {block_len} is claimed at the head of chain file')
-            msg_len = int(binascii.hexlify(f.read(4) or b'\x00'), 16)
+            msg_len = int(f.read(20))
             gs = dict()
             gs['Block'], gs['Transaction'], gs['TxIn'], gs['TxOut'] = globals()['Block'], globals()['Transaction'], \
                                                                       globals()['TxIn'], globals()['TxOut']
