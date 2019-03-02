@@ -35,7 +35,7 @@ from wallet.Wallet import Wallet
 from p2p.Message import Message
 from p2p.Message import Actions
 from p2p.Peer import Peer
-from p2p.TCPserver import (ThreadedTCPServer, TCPHandler)
+from p2p.UDPserver import (ThreadedUDPServer, UDPHandler)
 
 
 from consensus.Consensus import PoW
@@ -144,11 +144,11 @@ class EdgenceChain(object):
                     for _peer in self.peers:
                         Utils.send_to_peer(Message(Actions.BlockRev, block, Params.PORT_CURRENT), _peer)
                     with self.chain_lock:
-                        chain_idx  = TCPHandler.check_block_place(block, self.active_chain, self.utxo_set, \
+                        chain_idx  = UDPHandler.check_block_place(block, self.active_chain, self.utxo_set, \
                                                                   self.mempool, self.side_branches)
 
                         if chain_idx is not None and chain_idx >= 0:
-                            TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, \
+                            UDPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, \
                                                                   self.side_branches, self.mempool, \
                                                            self.utxo_set, self.mine_interrupt, self.peers)
                         elif chain_idx is None:
@@ -167,7 +167,7 @@ class EdgenceChain(object):
 
         workers = []
 
-        server = ThreadedTCPServer(('0.0.0.0', Params.PORT_CURRENT), TCPHandler, self.active_chain, self.side_branches,\
+        server = ThreadedUDPServer(('0.0.0.0', Params.PORT_CURRENT), UDPHandler, self.active_chain, self.side_branches,\
                                    self.orphan_blocks, self.utxo_set, self.mempool, self.peers, self.mine_interrupt, \
                                               self.ibd_done, self.chain_lock)
         start_worker(workers, server.serve_forever)

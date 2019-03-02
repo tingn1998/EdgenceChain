@@ -94,6 +94,7 @@ class Utils(object):
         to_send = Utils.serialize(data).encode()
         return int_to_8bytes(len(to_send)) + to_send
 
+
     @classmethod
     def send_to_peer(cls, data, peer)->bool:
         tries_left = int(Params.TRIES_MAXIMUM)
@@ -105,8 +106,8 @@ class Utils(object):
         while tries_left > 0:
             #logger.info(f'[utils] begin to create socket connection with peer {peer}' )
             try:
-                with socket.create_connection(peer(), timeout=1) as s:
-                    s.sendall(cls.encode_socket_data(data))
+                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                    s.sendto(cls.encode_socket_data(data), peer())
             except Exception:
                 logger.exception(f'[utils] failed to send to {peer} data in {Params.TRIES_MAXIMUM+1-tries_left}th time')
                 tries_left -= 1
@@ -117,19 +118,27 @@ class Utils(object):
                 logger.info(f'[utils] succeed in sending to {peer} data in {Params.TRIES_MAXIMUM+1-tries_left}th time')
                 return True
 
-
     @classmethod
     def read_all_from_socket(cls, req, gs) -> object:
-        data = b''
+        # data = b''
         # Our protocol is: first 4 bytes signify msg length.
-        msg_len = int(binascii.hexlify(req.recv(4) or b'\x00'), 16)
+        # msg_len = int(binascii.hexlify(req.recv(4) or b'\x00'), 16)
 
-        while msg_len > 0:
-            tdat = req.recv(1024)
-            data += tdat
-            msg_len -= len(tdat)
+        # while msg_len > 0:
+        #     tdat = req.recv(1024)
+        #     data += tdat
+        #     msg_len -= len(tdat)
 
-        return cls.deserialize(data.decode(), gs) if data else None
+        tdat = req[0]
+        # 截取前四字符判断是否超出最大接收量：max_packet_size = 8192，超出则报错
+        msg_len = int(binascii.hexlify(tdat[:4] or b'\x00'), 16)
+        data = tdat[4:]
+
+        if msg_len > 8188:
+            logger.exception(f'[utils] len of message is larger than the permitted length')
+            return cls.deserialize(data.decode(), gs) if data else None
+        else:
+            return cls.deserialize(data.decode(), gs) if data else None
 
 
 
