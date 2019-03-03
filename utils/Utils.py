@@ -134,9 +134,11 @@ class Utils(object):
         msg_len = int(binascii.hexlify(tdat[:4] or b'\x00'), 16)
         data = tdat[4:]
 
-        if msg_len > 8188:
+        max_packet_size = 8192
+
+        if msg_len > (max_packet_size - 4):
             logger.exception(f'[utils] len of message is larger than the permitted length')
-            return cls.deserialize(data.decode(), gs) if data else None
+            return None 
         else:
             return cls.deserialize(data.decode(), gs) if data else None
 
