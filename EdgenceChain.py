@@ -117,7 +117,7 @@ class EdgenceChain(object):
             logger.info(f'start initial block download from {len(self.peers)} peers')
             peer_sample = random.sample(self.peers, len(self.peers))
             for peer in peer_sample:
-                if not Utils.send_to_peer(Message(Actions.BlocksSyncReq, self.active_chain.chain[-1].id, \
+                if not Utils.send_to_peer_by_udp(Message(Actions.BlocksSyncReq, self.active_chain.chain[-1].id, \
                                               Params.PORT_CURRENT), peer):
                     self.peers.remove(peer)
                     Peer.save_peers(self.peers)
@@ -142,7 +142,7 @@ class EdgenceChain(object):
 
                 if block:
                     for _peer in self.peers:
-                        Utils.send_to_peer(Message(Actions.BlockRev, block, Params.PORT_CURRENT), _peer)
+                        Utils.send_to_peer_by_udp(Message(Actions.BlockRev, block, Params.PORT_CURRENT), _peer)
                     with self.chain_lock:
                         chain_idx  = UDPHandler.check_block_place(block, self.active_chain, self.utxo_set, \
                                                                   self.mempool, self.side_branches)
