@@ -80,7 +80,7 @@ class UDPHandler(socketserver.BaseRequestHandler):
                     globals()['Transaction'], globals()['UnspentTxOut'], globals()['Message'], \
                     globals()['TxIn'], globals()['TxOut'], globals()['Peer']
         try:
-            message = Utils.read_all_from_socket(self.request, gs)
+            message = Utils.read_udp_msg_from_socket(self.request, gs)
             # socket = self.request[1]
         except:
             logger.exception(f'[p2p] Invalid meassage from peer {self.client_address}')
@@ -125,7 +125,7 @@ class UDPHandler(socketserver.BaseRequestHandler):
         peer_samples = random.sample(self.peers, min(5, len(self.peers)))
         for _peer in self.peers:
             logger.info(f"[p2p] sending {len(peer_samples)} peers to {_peer}")
-            Utils.send_to_peer(Message(Actions.PeerExtend, peer_samples, Params.PORT_CURRENT), _peer)
+            Utils.send_to_peer_by_udp(Message(Actions.PeerExtend, peer_samples, Params.PORT_CURRENT), _peer)
 
     def handleBlockSyncReq(self, blockid: str, peer: Peer):
         with self.chain_lock:
@@ -138,7 +138,7 @@ class UDPHandler(socketserver.BaseRequestHandler):
             blocks = self.active_chain.chain[height:(height + Params.CHUNK_SIZE)]
 
         logger.info(f"[p2p] sending {len(blocks)} blocks to {peer}")
-        if Utils.send_to_peer(Message(Actions.BlocksSyncGet, blocks, Params.PORT_CURRENT), peer):
+        if Utils.send_to_peer_by_udp(Message(Actions.BlocksSyncGet, blocks, Params.PORT_CURRENT), peer):
             if peer not in self.peers:
                 self.peers.append(peer)
                 logger.info(f'[p2p] add peer {peer} into peer list')
@@ -175,7 +175,7 @@ class UDPHandler(socketserver.BaseRequestHandler):
             new_tip_id = self.active_chain.chain[-1].id
         logger.info(f'[p2p] current chain height {self.active_chain.height}, and continue initial block download ... ')
 
-        Utils.send_to_peer(Message(Actions.BlocksSyncReq, new_tip_id, Params.PORT_CURRENT), peer)
+        Utils.send_to_peer_by_udp(Message(Actions.BlocksSyncReq, new_tip_id, Params.PORT_CURRENT), peer)
 
     def handleTxStatusReq(self, txid: str, peer: Peer):
         def _txn_iterator(chain):
@@ -185,27 +185,27 @@ class UDPHandler(socketserver.BaseRequestHandler):
         with self.chain_lock:
             if txid in self.mempool.mempool:
                 status = f'txn {txid} found in_mempool'
-                Utils.send_to_peer(Message(Actions.TxStatusRev, status, Params.PORT_CURRENT), peer)
+                Utils.send_to_peer_by_udp(Message(Actions.TxStatusRev, status, Params.PORT_CURRENT), peer)
                 return
             for tx, block, height in _txn_iterator(self.active_chain.chain):
                 if tx.id == txid:
                     status = f'txn {txid} is mined in block {block.id} at height {height}'
-                    Utils.send_to_peer(Message(Actions.TxStatusRev, status, Params.PORT_CURRENT), peer)
+                    Utils.send_to_peer_by_udp(Message(Actions.TxStatusRev, status, Params.PORT_CURRENT), peer)
                     return
         status = f'txn {txid}:not_found'
-        Utils.send_to_peer(Message(Actions.TxStatusRev, status, Params.PORT_CURRENT), peer)
+        Utils.send_to_peer_by_udp(Message(Actions.TxStatusRev, status, Params.PORT_CURRENT), peer)
 
     def handleUTXO4Addr(self, addr: str, peer: Peer):
         with self.chain_lock:
             utxos4addr = [u for u in self.utxo_set.utxoSet.values() if u.to_address == addr]
-        Utils.send_to_peer(Message(Actions.UTXO4AddrRev, utxos4addr, Params.PORT_CURRENT), peer)
+        Utils.send_to_peer_by_udp(Message(Actions.UTXO4AddrRev, utxos4addr, Params.PORT_CURRENT), peer)
 
     def handleBalance4Addr(self, addr: str, peer: Peer):
 
         with self.chain_lock:
             utxos4addr = [u for u in self.utxo_set.utxoSet.values() if u.to_address == addr]
         val = sum(utxo.value for utxo in utxos4addr)
-        Utils.send_to_peer(Message(Actions.Balance4AddrRev, val, Params.PORT_CURRENT), peer)
+        Utils.send_to_peer_by_udp(Message(Actions.Balance4AddrRev, val, Params.PORT_CURRENT), peer)
 
     def handleTxRev(self, txn: Transaction, peer: Peer):
         if isinstance(txn, Transaction):
@@ -214,7 +214,7 @@ class UDPHandler(socketserver.BaseRequestHandler):
                 if self.mempool.add_txn_to_mempool(txn, self.utxo_set):
                     for _peer in self.peers:
                         if _peer != peer:
-                            Utils.send_to_peer(Message(Actions.TxRev, txn, Params.PORT_CURRENT), _peer)
+                            Utils.send_to_peer_by_udp(Message(Actions.TxRev, txn, Params.PORT_CURRENT), _peer)
         else:
             logger.info(f'[p2p] {txn} is not a Transaction object in handleTxRev')
             return

@@ -94,9 +94,33 @@ class Utils(object):
         to_send = Utils.serialize(data).encode()
         return int_to_8bytes(len(to_send)) + to_send
 
+    @classmethod
+    def send_to_peer_by_tcp(cls, data, peer) -> bool:
+        tries_left = int(Params.TRIES_MAXIMUM)
+
+        if tries_left <= 0:
+            logger.exception(f'[utils] tries_left in send_to_peer must be larger than or equal to  1')
+            return False
+
+        while tries_left > 0:
+            # logger.info(f'[utils] begin to create socket connection with peer {peer}' )
+            try:
+                with socket.create_connection(peer(), timeout=1) as s:
+                    s.sendall(cls.encode_socket_data(data))
+            except Exception:
+                logger.exception(
+                    f'[utils] failed to send to {peer} data in {Params.TRIES_MAXIMUM + 1 - tries_left}th time')
+                tries_left -= 1
+                time.sleep(2)
+                if tries_left <= 0:
+                    return False
+            else:
+                logger.info(
+                    f'[utils] succeed in sending to {peer} data in {Params.TRIES_MAXIMUM + 1 - tries_left}th time')
+                return True
 
     @classmethod
-    def send_to_peer(cls, data, peer)->bool:
+    def send_to_peer_by_udp(cls, data, peer)->bool:
         tries_left = int(Params.TRIES_MAXIMUM)
 
         if tries_left <= 0:
@@ -116,18 +140,23 @@ class Utils(object):
                     return False
             else:
                 logger.info(f'[utils] succeed in sending to {peer} data in {Params.TRIES_MAXIMUM+1-tries_left}th time')
-                return True
+                return
 
     @classmethod
-    def read_all_from_socket(cls, req, gs) -> object:
-        # data = b''
+    def read_tcp_msg_from_socket(cls, req, gs) -> object:
+        data = b''
         # Our protocol is: first 4 bytes signify msg length.
-        # msg_len = int(binascii.hexlify(req.recv(4) or b'\x00'), 16)
+        msg_len = int(binascii.hexlify(req.recv(4) or b'\x00'), 16)
 
-        # while msg_len > 0:
-        #     tdat = req.recv(1024)
-        #     data += tdat
-        #     msg_len -= len(tdat)
+        while msg_len > 0:
+            tdat = req.recv(1024)
+            data += tdat
+            msg_len -= len(tdat)
+
+        return cls.deserialize(data.decode(), gs) if data else None
+
+    @classmethod
+    def read_udp_msg_from_socket(cls, req, gs) -> object:
 
         tdat = req[0]
         # 截取前四字符判断是否超出最大接收量：max_packet_size = 8192，超出则报错
@@ -138,7 +167,7 @@ class Utils(object):
 
         if msg_len > (max_packet_size - 4):
             logger.exception(f'[utils] len of message is larger than the permitted length')
-            return None 
+            return None
         else:
             return cls.deserialize(data.decode(), gs) if data else None
 
