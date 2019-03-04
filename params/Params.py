@@ -60,12 +60,12 @@ class Params:
     # list of peers
     CHUNK_SIZE = int(50)
     MAXIMUM_ALLOWABLE_HEIGHT_DIFF = 60
-    PORT_CURRENT = int(9999)
+    PORT_CURRENT = int(9997)
     PEERS_FILE =  'seeds.node'
     CHAIN_FILE = 'chain.dat'
     WALLET_FILE = 'mywallet.dat'
     PEERS: Iterable[Tuple] = list([#('127.0.0.1', 2221),
                       #('127.0.0.1', 99),
-                      #('localhost', 9999)
+                      ('localhost', 9999)
                      ])
 
