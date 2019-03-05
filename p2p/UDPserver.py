@@ -53,6 +53,7 @@ class ThreadedUDPServer(socketserver.ThreadingMixIn, socketserver.UDPServer):
         self.ibd_done = ibd_done
         self.chain_lock = chain_lock
 
+        # 载入handler类
         socketserver.UDPServer.__init__(self, ip_port, udp_handler_class)
         logger.info(f'[p2p] using udp method and listening on {Params.PORT_CURRENT}')
 
@@ -99,7 +100,7 @@ class UDPHandler(socketserver.BaseRequestHandler):
 
 
 
-
+        # deal with action
         action = int(message.action)
         if action == Actions.BlocksSyncReq:
             self.handleBlockSyncReq(message.data, peer)
@@ -138,6 +139,7 @@ class UDPHandler(socketserver.BaseRequestHandler):
             blocks = self.active_chain.chain[height:(height + Params.CHUNK_SIZE)]
 
         logger.info(f"[p2p] sending {len(blocks)} blocks to {peer}")
+        # sending process after receiving.
         if Utils.send_to_peer_by_udp(Message(Actions.BlocksSyncGet, blocks, Params.PORT_CURRENT), peer):
             if peer not in self.peers:
                 self.peers.append(peer)
