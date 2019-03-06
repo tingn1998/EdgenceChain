@@ -119,10 +119,9 @@ class EdgenceChain(object):
             for peer in peer_sample:
                 if not Utils.send_to_peer_by_udp(Message(Actions.BlocksSyncReq, self.active_chain.chain[-1].id, \
                                               Params.PORT_CURRENT), peer):
-                    # self.peers.remove(peer)
+                    self.peers.remove(peer)
                     Peer.save_peers(self.peers)
-                    # logger.info(f'remove dead peer {peer}')
-                    logger.info(f'keep this peer')
+                    logger.info(f'remove dead peer {peer}')
         else:
             logger.info(f'no peer nodes existed, ibd_done is set')
             self.ibd_done.set()

@@ -122,25 +122,29 @@ class Utils(object):
     @classmethod
     def send_to_peer_by_udp(cls, data, peer)->bool:
         tries_left = int(Params.TRIES_MAXIMUM)
+        # max_packet_size = int(Params.UDP_MAX_PACKET_SIZE)
 
         if tries_left <= 0:
             logger.exception(f'[utils] tries_left in send_to_peer must be larger than or equal to  1')
             return False
 
         while tries_left > 0:
-            #logger.info(f'[utils] begin to create socket connection with peer {peer}' )
+            # logger.info(f'[utils] begin to create socket connection with peer {peer}' )
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                     s.sendto(cls.encode_socket_data(data), peer())
             except Exception:
-                logger.exception(f'[utils] failed to send to {peer} data in {Params.TRIES_MAXIMUM+1-tries_left}th time')
+                logger.exception(
+                    f'[utils] failed to send to {peer} data in {Params.TRIES_MAXIMUM + 1 - tries_left}th time')
                 tries_left -= 1
                 time.sleep(2)
                 if tries_left <= 0:
                     return False
             else:
-                logger.info(f'[utils] succeed in sending to {peer} data in {Params.TRIES_MAXIMUM+1-tries_left}th time')
-                return
+                logger.info(
+                    f'[utils] succeed in sending to {peer} data in {Params.TRIES_MAXIMUM + 1 - tries_left}th time')
+                return True
+
 
     @classmethod
     def read_tcp_msg_from_socket(cls, req, gs) -> object:
