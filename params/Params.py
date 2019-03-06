@@ -55,7 +55,11 @@ class Params:
     HALVE_SUBSIDY_AFTER_BLOCKS_NUM = int(210_000)
     ACTIVE_CHAIN_IDX = int(0)
 
+    # limit for sending times by tcp/udp method
     TRIES_MAXIMUM = 1
+
+    # limit for sending size by udp method
+    UDP_MAX_PACKET_SIZE = 9127
 
     # list of peers
     CHUNK_SIZE = int(50)

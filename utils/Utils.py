@@ -122,10 +122,14 @@ class Utils(object):
     @classmethod
     def send_to_peer_by_udp(cls, data, peer)->bool:
         tries_left = int(Params.TRIES_MAXIMUM)
-        # max_packet_size = int(Params.UDP_MAX_PACKET_SIZE)
+        max_packet_size = int(Params.UDP_MAX_PACKET_SIZE)
 
         if tries_left <= 0:
             logger.exception(f'[utils] tries_left in send_to_peer must be larger than or equal to  1')
+            return False
+
+        if len(Utils.encode_socket_data(data)) > max_packet_size :
+            logger.exception(f'[utils] message size is larger than the max_packet_size')
             return False
 
         while tries_left > 0:
