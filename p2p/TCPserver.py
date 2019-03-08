@@ -119,6 +119,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
             self.handleBlockRev(message.data, peer)
         elif action == Actions.PeerExtend:
             self.handlePeerExtendGet(message.data, peer)
+        elif action == Actions.TopBlocksSyncReq:
+            self.handleTopBlockSyncReq(message.data, peer)
         else:
             logger.exception(f'[p2p] received unwanted action request ')
 
@@ -138,6 +140,19 @@ class TCPHandler(socketserver.BaseRequestHandler):
             else:
                 logger.info(f"[p2p] receive BlockSyncReq at height {height} from peer {peer}")
             blocks = self.active_chain.chain[height:(height + Params.CHUNK_SIZE)]
+
+        logger.info(f"[p2p] sending {len(blocks)} blocks to {peer}")
+        if Utils.send_to_peer(Message(Actions.BlocksSyncGet, blocks, Params.PORT_CURRENT), peer):
+            if peer not in self.peers:
+                self.peers.append(peer)
+                logger.info(f'[p2p] add peer {peer} into peer list')
+                Peer.save_peers(self.peers)
+                self.sendPeerExtend()
+
+    def handleTopBlockSyncReq(self, topN: int, peer: Peer):
+        with self.chain_lock:
+            logger.info(f"[p2p] receive TopBlockSyncReq with length {topN} from peer {peer}")
+            blocks = self.active_chain.chain[-topN:]
 
         logger.info(f"[p2p] sending {len(blocks)} blocks to {peer}")
         if Utils.send_to_peer(Message(Actions.BlocksSyncGet, blocks, Params.PORT_CURRENT), peer):
@@ -235,6 +250,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     logger.info(f'[p2p] already seen block {block.id}, and do nothing')
                 elif chain_idx == -1:
                     self.orphan_blocks.append(block)
+                    Utils.send_to_peer(Message(Actions.TopBlocksSyncReq, 50, Params.PORT_CURRENT), peer)
 
         else:
             logger.info(f'[p2p] {block} is not a Block')
