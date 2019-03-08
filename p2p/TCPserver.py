@@ -272,7 +272,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                     mempool, utxo_set, mine_interrupt, peers)
 
         if connect_block_success is not False:
-            if len(active_chain.chain)%20 == 0 or len(active_chain.chain) <= 5:
+            if len(active_chain.chain) % 2 == 0 or len(active_chain.chain) <= 5:
                 Persistence.save_to_disk(active_chain)
 
             if connect_block_success is not True: # -1
