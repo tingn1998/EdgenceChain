@@ -265,7 +265,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 elif chain_idx is None:
                     logger.info(f'[p2p] already seen block {block.id}, and do nothing')
                 elif chain_idx == -1:
-                    self.orphan_blocks.append(block)
+                    #self.orphan_blocks.append(block)
                     Utils.send_to_peer(Message(Actions.TopBlocksSyncReq, 50, Params.PORT_CURRENT), peer)
 
         else:

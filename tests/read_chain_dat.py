@@ -66,7 +66,7 @@ for block in new_blocks:
     block.merkle_hash
     block.prev_block_hash
     block.id
-    
+
 
 
 def check_blocks(blocks: Iterable[Block]) -> bool:
