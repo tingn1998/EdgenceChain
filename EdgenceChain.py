@@ -146,8 +146,7 @@ class EdgenceChain(object):
                             self.peers.remove(_peer)
                             Peer.save_peers(self.peers)
                             logger.info(f'remove dead peer {_peer}')
-                        else:
-                            Utils.send_to_peer(Message(Actions.BlockRev, block, Params.PORT_CURRENT), _peer)
+
                     with self.chain_lock:
                         chain_idx  = TCPHandler.check_block_place(block, self.active_chain, self.utxo_set, \
                                                                   self.mempool, self.side_branches)
