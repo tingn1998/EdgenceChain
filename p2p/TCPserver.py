@@ -184,7 +184,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         with self.chain_lock:
             chain_idx  = TCPHandler.check_block_place(new_blocks[0], self.active_chain, self.utxo_set, \
                                                           self.mempool, self.side_branches)
-            if chain_idx >= 1:
+            if chain_idx is not None and chain_idx >= 1:
                 # if is side branches, append the blocks (one block left) to the side branches directly
                 while len(new_blocks) >= 2:
                     self.side_branches[chain_idx-1].chain.append(new_blocks.pop(0))
