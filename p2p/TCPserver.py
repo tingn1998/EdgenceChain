@@ -132,6 +132,13 @@ class TCPHandler(socketserver.BaseRequestHandler):
             Utils.send_to_peer(Message(Actions.PeerExtend, peer_samples, Params.PORT_CURRENT), _peer)
 
     def handleBlockSyncReq(self, blockid: str, peer: Peer):
+
+        if peer not in self.peers:
+            self.peers.append(peer)
+            logger.info(f'[p2p] add peer {peer} into peer list')
+            Peer.save_peers(self.peers)
+            self.sendPeerExtend()
+
         with self.chain_lock:
             height = Block.locate_block(blockid, self.active_chain)[1]
             if height is None:
@@ -163,8 +170,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 self.sendPeerExtend()
 
     def handleBlockSyncGet(self, blocks: Iterable[Block], peer: Peer):
-        logger.info(f"[p2p] recieve BlockSyncGet with {len(blocks)} blocks from {peer}")
+        logger.info(f"[p2p] receive BlockSyncGet with {len(blocks)} blocks from {peer}")
         new_blocks = [block for block in blocks if not Block.locate_block(block.id, self.active_chain, self.side_branches)[0]]
+        logger.info(f'[p2p] {len(new_blocks)} of {len(blocks)} blocks from {peer} is new')
 
         if not new_blocks:
             logger.info('[p2p] initial block download complete, prepare to mine')
@@ -174,9 +182,17 @@ class TCPHandler(socketserver.BaseRequestHandler):
             self.ibd_done.clear()
 
         with self.chain_lock:
-            for block in new_blocks:
-                chain_idx  = TCPHandler.check_block_place(block, self.active_chain, self.utxo_set, \
+            chain_idx  = TCPHandler.check_block_place(new_blocks[0], self.active_chain, self.utxo_set, \
                                                           self.mempool, self.side_branches)
+            if chain_idx is not None and chain_idx >= 1:
+                # if is side branches, append the blocks (one block left) to the side branches directly
+                while len(new_blocks) >= 2:
+                    self.side_branches[chain_idx-1].chain.append(new_blocks.pop(0))
+
+            for block in new_blocks:
+                #chain_idx  = TCPHandler.check_block_place(block, self.active_chain, self.utxo_set, \
+                #                                          self.mempool, self.side_branches)
+
 
                 if chain_idx is not None and chain_idx >= 0:
                     if not TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, self.side_branches, \
@@ -249,11 +265,18 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 elif chain_idx is None:
                     logger.info(f'[p2p] already seen block {block.id}, and do nothing')
                 elif chain_idx == -1:
-                    self.orphan_blocks.append(block)
+                    #self.orphan_blocks.append(block)
                     Utils.send_to_peer(Message(Actions.TopBlocksSyncReq, 50, Params.PORT_CURRENT), peer)
 
         else:
             logger.info(f'[p2p] {block} is not a Block')
+
+    @classmethod
+    def printBlockchainIDs(cls, chain: BlockChain, inv: str = 'ID sequence of blockchain '):
+        new_branch_id = ''
+        for block in chain.chain:
+            new_branch_id += block.id[-10:]+' ,'
+        logger.info(f'{inv}: {new_branch_id}')
 
     @classmethod
     def do_connect_block_and_after(cls, block: Block, chain_idx, active_chain: BlockChain, side_branches: Iterable[BlockChain], \
@@ -272,26 +295,36 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                     mempool, utxo_set, mine_interrupt, peers)
 
         if connect_block_success is not False:
-            if len(active_chain.chain) % 2 == 0 or len(active_chain.chain) <= 5:
+            if len(active_chain.chain) % 1 == 0 or len(active_chain.chain) <= 5:
                 Persistence.save_to_disk(active_chain)
 
-            if connect_block_success is not True: # -1
+            if connect_block_success is not True: # -1, success and reorg
                 logger.info(f'[p2p] a successful reorg is found, begin to deal with {len(side_branches)} side branches')
+
                 for branch_chain in side_branches:
+                    logger.info(f'[p2p] number of blocks before slim side branch: {len(branch_chain.chain)}')
+
+                    TCPHandler.printBlockchainIDs(branch_chain, '[p2p] side branch removed from active chain ')
+
                     fork_height_from_end = 0
                     for block in branch_chain.chain[::-1]:
-                        if not Block.locate_block(block.id, active_chain):
-                            if not Block.locate_block(block.prev_block_hash, active_chain):
+                        if not Block.locate_block(block.id, active_chain)[0]:
+                            if not Block.locate_block(block.prev_block_hash, active_chain)[0]:
                                 fork_height_from_end += 1
                             else:
                                 break
                         else:
                             branch_chain.chain = []
-                    if fork_height_from_end >= branch_chain.height:
+                            logger.info(f'[p2p] the whole body of this branch chain is in active chain')
+                            break
+                    if fork_height_from_end >= branch_chain.height and branch_chain.height != 0:
                         branch_chain.chain = []
+                        logger.info(f'[p2p] all blocks are orphans to the current active chain')
+
                     else:
                         for num_to_pop in range(1, branch_chain.height-fork_height_from_end):
                             branch_chain.chain.pop(0)
+                    logger.info(f'[p2p] number of blocks after slim side branch: {len(branch_chain.chain)}')
 
 
             side_branches_to_discard = []

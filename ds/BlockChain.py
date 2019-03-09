@@ -66,6 +66,7 @@ class BlockChain(BaseBlockChain):
         return self.chain.pop()
 
 
+    # return values of connect_block: 1. True means success but no reorg; 2. False means unsuccess; 3. -1 means success and reorg
     def connect_block(self, block: Block, active_chain: BaseBlockChain, side_branches: Iterable[BaseBlockChain],\
                       mempool: MemPool, utxo_set: UTXO_Set, mine_interrupt: threading.Event,\
                       peers: Iterable[Peer], doing_reorg=False) -> bool:
@@ -100,7 +101,7 @@ class BlockChain(BaseBlockChain):
                                                           mine_interrupt, peers, \
                                                           doing_reorg=True) == True
 
-                for block in branch_chain:
+                for block in branch_chain.chain:
                     if not active_chain.connect_block(block, active_chain, side_branches, mempool, utxo_set, \
                                                       mine_interrupt, peers, doing_reorg=True):
 
@@ -110,7 +111,7 @@ class BlockChain(BaseBlockChain):
 
                 for branch_chain in side_branches:
                     if branch_chain.idx == branch_idx:
-                        branch_chain.chain = old_active
+                        branch_chain.chain = list(old_active)
 
                 logger.info(f'[ds] chain reorg successful with new active_chain height {active_chain.height} and '
                             f'top block id {active_chain.chain[-1].id}')
@@ -129,8 +130,8 @@ class BlockChain(BaseBlockChain):
                 branch_height_real = branch_chain.height + fork_height
 
                 if branch_height_real > active_height:
-                    logger.info(f'[ds] decide to reorg branch {branch_idx} with height {branch_height_real} to \
-                        active_chain with real height {active_height}')
+                    logger.info(f'[ds] decide to reorg branch {branch_idx} with height {branch_height_real} to '
+                                f'active_chain with real height {active_height}')
                     reorged |= _do_reorg(branch_idx, side_branches, active_chain, fork_height, mempool, \
                                          utxo_set, mine_interrupt, peers)
 
