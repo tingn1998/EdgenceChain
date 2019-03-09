@@ -28,6 +28,7 @@ from ds.BaseMemPool import BaseMemPool
 from ds.BlockChain import BlockChain
 from ds.TxIn import TxIn
 from ds.TxOut import TxOut
+from ds.MerkleNode import MerkleNode
 
 from p2p.Message import Message
 from p2p.Message import Actions
@@ -180,6 +181,14 @@ class TCPHandler(socketserver.BaseRequestHandler):
             return
         else:
             self.ibd_done.clear()
+
+        for idx in range(len(new_blocks)-1):
+            block = new_blocks[idx]
+            if MerkleNode.get_merkle_root_of_txns(block.txns).val != block.merkle_hash or \
+                    block.id != new_blocks[idx+1].prev_block_hash:
+                logger.info(f'[p2p] check of block headers is  a failure')
+                return
+
 
         with self.chain_lock:
             chain_idx  = TCPHandler.check_block_place(new_blocks[0], self.active_chain, self.utxo_set, \
