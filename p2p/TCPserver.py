@@ -91,7 +91,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
         if not isinstance(message, Message):
-            logger.exception(f'[p2p] Not a Message from peer {self.request.getpeername()[0]}')
+            logger.info(f'[p2p] Not a Message from peer {self.request.getpeername()[0]}')
             return
         else:
             peer = Peer(str(self.request.getpeername()[0]), int(message.port))

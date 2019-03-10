@@ -37,7 +37,7 @@ class MemPool(BaseMemPool):
         try:
             txout = self.mempool[txid].txouts[idx]
         except Exception:
-            logger.debug(f"[ds] could not find utxo in mempool for txin {txin}")
+            logger.exception(f"[ds] could not find utxo in mempool for txin {txin}")
             return None
 
         return UnspentTxOut(

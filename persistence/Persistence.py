@@ -70,7 +70,7 @@ def load_from_disk(active_chain: BlockChain, utxo_set: UTXO_Set, CHAIN_PATH=Para
         return
     else:
         if len(active_chain.chain) > 1:
-            logger.exception(f'[persistence] more than the genesis block exists, load_from_disk stopped and return')
+            logger.info(f'[persistence] more than the genesis block exists, load_from_disk stopped and return')
             return
     try:
         with open(CHAIN_PATH, "rb") as f:
@@ -86,7 +86,7 @@ def load_from_disk(active_chain: BlockChain, utxo_set: UTXO_Set, CHAIN_PATH=Para
 
             for block in new_blocks[1:]:
                 if not _connect_block(block, active_chain, utxo_set):
-                    logger.exception(f'[persistence] {active_chain.height+1} block connecting failed, load_from_disk stopped and return')
+                    logger.info(f'[persistence] {active_chain.height+1} block connecting failed, load_from_disk stopped and return')
                     return
             logger.info(f'[persistence] loading {len(new_blocks)} blocks successful')
     except Exception:

@@ -99,7 +99,7 @@ class Utils(object):
         tries_left = int(Params.TRIES_MAXIMUM)
 
         if tries_left <= 0:
-            logger.exception(f'[utils] tries_left in send_to_peer must be larger than or equal to  1')
+            logger.info(f'[utils] tries_left in send_to_peer must be larger than or equal to  1')
             return False
 
         while tries_left > 0:
