@@ -62,7 +62,7 @@ class BlockChain(BaseBlockChain):
             for i in range(len(tx.txouts)):
                 utxo_set.rm_from_utxo(tx.id, i)
 
-        logger.info(f'[ds] block {block.id} disconnected')
+        logger.info(f'[ds] block {block.id} disconnected, recover transactions and UTXOs by it')
         return self.chain.pop()
 
 
