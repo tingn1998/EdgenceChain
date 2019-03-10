@@ -115,7 +115,7 @@ class EdgenceChain(object):
         self.ibd_done.clear()
         if self.peers:
             logger.info(f'start initial block download from {len(self.peers)} peers')
-            peer_sample = random.sample(self.peers, len(self.peers))
+            peer_sample = random.sample(self.peers, min(len(self.peers),5))
             for peer in peer_sample:
                 if not Utils.send_to_peer(Message(Actions.BlocksSyncReq, self.active_chain.chain[-1].id, \
                                               Params.PORT_CURRENT), peer):

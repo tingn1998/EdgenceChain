@@ -134,6 +134,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
     def handleBlockSyncReq(self, blockid: str, peer: Peer):
 
+        logger.info(f"[p2p] receive BlockSyncReq from peer {peer}")
         if peer not in self.peers:
             self.peers.append(peer)
             logger.info(f'[p2p] add peer {peer} into peer list')
@@ -151,11 +152,12 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
         logger.info(f"[p2p] sending {len(blocks)} blocks to {peer}")
         if Utils.send_to_peer(Message(Actions.BlocksSyncGet, blocks, Params.PORT_CURRENT), peer):
-            if peer not in self.peers:
-                self.peers.append(peer)
-                logger.info(f'[p2p] add peer {peer} into peer list')
-                Peer.save_peers(self.peers)
-                self.sendPeerExtend()
+            pass
+            #if peer not in self.peers:
+            #    self.peers.append(peer)
+            #    logger.info(f'[p2p] add peer {peer} into peer list')
+            #    Peer.save_peers(self.peers)
+            #    self.sendPeerExtend()
 
     def handleTopBlockSyncReq(self, topN: int, peer: Peer):
         with self.chain_lock:
@@ -197,6 +199,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 # if is side branches, append the blocks (one block left) to the side branches directly
                 while len(new_blocks) >= 2:
                     self.side_branches[chain_idx-1].chain.append(new_blocks.pop(0))
+                logger.info(f'[p2p] just append {len(new_blocks)-1} blocks to side branch {chain_idx}, leaving one block to '
+                f'be coped with method TCPHandler.do_connect_block_and_after')
 
             for block in new_blocks:
                 #chain_idx  = TCPHandler.check_block_place(block, self.active_chain, self.utxo_set, \
@@ -206,7 +210,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 if chain_idx is not None and chain_idx >= 0:
                     if not TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, self.side_branches, \
                                                     self.mempool, self.utxo_set, self.mine_interrupt, self.peers):
-                        return None
+                        return
                 elif chain_idx is not None and chain_idx <= -1:
                     logger.info(f'[p2p] orphan or wrong block {block.id}')
                     break
@@ -270,7 +274,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 if chain_idx is not None and chain_idx >= 0:
                     if not TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, self.side_branches, \
                                                        self.mempool, self.utxo_set, self.mine_interrupt, self.peers):
-                        return False
+                        return
                 elif chain_idx is None:
                     logger.info(f'[p2p] already seen block {block.id}, and do nothing')
                 elif chain_idx == -1:
@@ -293,8 +297,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                 peers: Iterable[Peer]) -> bool:
         if int(chain_idx) == int(Params.ACTIVE_CHAIN_IDX):
             if block.block_subsidy_fees != Block.get_block_subsidy(active_chain) + block.calculate_fees(utxo_set):
-                logger.exception(f'[p2p] subsidy and fees of this block are not right, so discard this block.')
+                logger.info(f'[p2p] subsidy and fees of this block are not right, so discard this block and return.')
+                #logger.info(f'after check subsid_fees, and give out a logger.exception')
                 return False
+            else:
+                logger.info(f'[p2p] subsidy and fees of this block are right.')
             connect_block_success = active_chain.connect_block(block, active_chain, \
                                                     side_branches, \
                                     mempool, utxo_set, mine_interrupt, peers)
