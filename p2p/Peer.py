@@ -45,8 +45,8 @@ class Peer(namedtuple("ip_port","ip,port")):
         else:
             #log a log if ip:port is not valid
             logger.exception(f'[p2p] init peers exception：{ip}:{port} is not a valid [ip]:[port]')
-            #return 127.0.0.1:9999 to replace invalid ip:port, minimize loss
-            return super().__new__(cls,'127.0.0.1',9999)
+            #return 0.0.0.1:9999 to replace invalid ip:port, minimize loss
+            return super().__new__(cls,'0.0.0.0',9999)
 
     @property
     def id(self):
