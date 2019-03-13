@@ -58,12 +58,13 @@ class Peer(NamedTuple):
                         #catch errors if the name is not valid
                         try:
                             peer[0]=socket.gethostbyname(peer[0])
+                            #append the IP to the peers
+                            peers.append(Peer(str(peer[0]), int(peer[1])))
                         except Exception:
                             logger.exception(f"[p2p] {peer[0]} can not be resolved , maybe not a valid name")
                     else:
-                        pass
-                    #append the IP to the peers
-                    peers.append(Peer(str(peer[0]), int(peer[1])))
+                        #append the IP to the peers
+                        peers.append(Peer(str(peer[0]), int(peer[1])))
             try:
                 with open(peerfile, "wb") as f:
                     logger.info(f"[p2p] saving {len(peers)} hostnames")
