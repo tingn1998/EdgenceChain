@@ -4,6 +4,7 @@ from typing import (
 from ds.Block import Block
 from ds.Transaction import Transaction
 from ds.UnspentTxOut import UnspentTxOut
+from ds.OutPoint import OutPoint
 from p2p.Peer import Peer
 
 from enum import Enum, unique
@@ -23,11 +24,12 @@ class Actions:
     Balance4AddrRev = 9
     PeerExtend = 10
     TopBlocksSyncReq = 11
+    TxConfirm = 12
 
 
 class Message(NamedTuple):
     action: int
-    data: Union[str, Iterable[Block], Iterable[UnspentTxOut], int, Transaction, Block, Iterable[Peer]]
+    data: Union[str, Iterable[Block], Iterable[UnspentTxOut], int, Transaction, Block, Iterable[Peer], OutPoint, bool]
     port: Union[None, int] = None
 
 

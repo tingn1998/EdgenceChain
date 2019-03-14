@@ -16,6 +16,7 @@ from typing import (
 from ds.Transaction import Transaction
 from ds.Block  import Block
 from ds.UnspentTxOut import UnspentTxOut
+from ds.OutPoint import OutPoint
 from utils.Errors import BlockValidationError
 from utils.Utils import Utils
 from params.Params import Params
@@ -80,9 +81,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
         gs = dict()
-        gs['Block'], gs['Transaction'], gs['UnspentTxOut'], gs['Message'], gs['TxIn'], gs['TxOut'], gs['Peer'] = globals()['Block'], \
-                    globals()['Transaction'], globals()['UnspentTxOut'], globals()['Message'], \
-                    globals()['TxIn'], globals()['TxOut'], globals()['Peer']
+        gs['Block'], gs['Transaction'], gs['UnspentTxOut'], gs['Message'], gs['TxIn'], gs['TxOut'], gs['Peer'], gs['OutPoint']= \
+                    globals()['Block'], globals()['Transaction'], globals()['UnspentTxOut'], globals()['Message'], \
+                    globals()['TxIn'], globals()['TxOut'], globals()['Peer'], globals()['OutPoint']
         try:
             message = Utils.read_all_from_socket(self.request, gs)
         except:
@@ -259,12 +260,22 @@ class TCPHandler(socketserver.BaseRequestHandler):
             logger.info(f"[p2p] received txn {txn.id} from peer {peer}")
             with self.chain_lock:
                 if self.mempool.add_txn_to_mempool(txn, self.utxo_set):
+                    Utils.send_to_peer(Message(Actions.TxConfirm, True, Params.PORT_CURRENT), peer)
                     for _peer in self.peers:
                         if _peer != peer:
                             Utils.send_to_peer(Message(Actions.TxRev, txn, Params.PORT_CURRENT), _peer)
+                else:
+                    print("here")
+                    Utils.send_to_peer(Message(Actions.TxConfirm, False, Params.PORT_CURRENT), peer)
         else:
             logger.info(f'[p2p] {txn} is not a Transaction object in handleTxRev')
             return
+
+    def handleTxConfirm(self, confirm: bool, peer: Peer):
+        if confirm:
+            logger.info(f'[p2p] received TxConfirm True from {peer}')
+        else:
+            logger.info(f'[p2p] received TxConfirm False from {peer}')
 
     def handleBlockRev(self, block: Block, peer: Peer):
         if isinstance(block, Block):

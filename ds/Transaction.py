@@ -89,14 +89,14 @@ class Transaction(NamedTuple):
         Validate a single transaction. Used in various contexts, so the
         parameters facilitate different uses.
         """
-        def validate_signature_for_spend(txin, utxo: UnspentTxOut, txn):
+        def validate_signature_for_spend(txin, utxo: UnspentTxOut):
             def build_spend_message(to_spend, pk, sequence, txouts) -> bytes:
                 """This should be ~roughly~ equivalent to SIGHASH_ALL."""
                 return Utils.sha256d(
                     Utils.serialize(to_spend) + str(sequence) +
                     binascii.hexlify(pk).decode() + Utils.serialize(txouts)).encode()
 
-            pubkey_as_addr = Wallet.pubkey_to_address(txin.unlock_pk)
+            pubkey_as_addr = Wallet.pubkey_to_address(txin.unlock_pk).decode()
             verifying_key = ecdsa.VerifyingKey.from_string(
                 txin.unlock_pk, curve=ecdsa.SECP256k1)
 
@@ -105,7 +105,7 @@ class Transaction(NamedTuple):
 
             try:
                 spend_msg = build_spend_message(
-                    txin.to_spend, txin.unlock_pk, txin.sequence, txn.txouts)
+                    txin.to_spend, txin.unlock_pk, txin.sequence, self.txouts)
                 verifying_key.verify(txin.unlock_sig, spend_msg)
             except Exception:
                 logger.exception(f'[ds] Key verification failed')
