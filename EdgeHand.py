@@ -79,8 +79,7 @@ class EdgeHand(object):
         conn.close()
         return message
 
-    def getBalance4Addr(self, wallet_path):
-        wallet_addr = Wallet.init_wallet(wallet_path).my_address
+    def getBalance4Addr(self, wallet_addr):
         with self.chain_lock:
             peer, port = self.getPort()
             message = Message(Actions.Balance4Addr, wallet_addr, port)
@@ -94,8 +93,7 @@ class EdgeHand(object):
             else:
                 logger.info(f'[EdgeHand] failed to send Balance4Addr ro {peer}')
 
-    def getUTXO4Addr(self, wallet_path):
-        wallet_addr = Wallet.init_wallet(wallet_path).my_address
+    def getUTXO4Addr(self, wallet_addr):
         with self.chain_lock:
             peer, port = self.getPort()
             message = Message(Actions.UTXO4Addr, wallet_addr, port)
@@ -111,7 +109,7 @@ class EdgeHand(object):
 
     def sendTransaction(self, to_addr, value):
         selected = set()
-        my_balance = list(sorted(self.getUTXO4Addr(self.args.wallet), key=lambda i: (i.value, i.height)))
+        my_balance = list(sorted(self.getUTXO4Addr(self.wallet.my_address), key=lambda i: (i.value, i.height)))
         if sum(i.value for i in my_balance) <= value:
             logger.info(f'[EdgeHand] lack of balance.')
             return
