@@ -84,28 +84,28 @@ class EdgeHand(object):
             peer, port = self.getPort()
             message = Message(Actions.Balance4Addr, wallet_addr, port)
             if Utils.send_to_peer(message, peer):
-                logger.info(f'[EdgeHand] succeed to send Balance4Addr ro {peer}')
+                logger.info(f'[EdgeHand] succeed to send Balance4Addr to {peer}')
                 msg = self.getRecv(peer, port)
                 if msg:
                     logger.info(f'[EdgeHand] received Balance4Addr from peer {peer}')
                     print(f'#{msg.data}# in address {wallet_addr}')
                     return msg.data
             else:
-                logger.info(f'[EdgeHand] failed to send Balance4Addr ro {peer}')
+                logger.info(f'[EdgeHand] failed to send Balance4Addr to {peer}')
 
     def getUTXO4Addr(self, wallet_addr):
         with self.chain_lock:
             peer, port = self.getPort()
             message = Message(Actions.UTXO4Addr, wallet_addr, port)
             if Utils.send_to_peer(message, peer):
-                logger.info(f'[EdgeHand] succeed to send UTXO4Addr ro {peer}')
+                logger.info(f'[EdgeHand] succeed to send UTXO4Addr to {peer}')
                 msg = self.getRecv(peer, port)
                 if msg:
                     logger.info(f'[EdgeHand] received UTXO4Addr from peer {peer}')
                     print(f'#{len(msg.data)}# utxo in address {wallet_addr}')
                     return msg.data
             else:
-                logger.info(f'[EdgeHand] failed to send UTXO4Addr ro {peer}')
+                logger.info(f'[EdgeHand] failed to send UTXO4Addr to {peer}')
 
     def sendTransaction(self, to_addr, value):
         selected = set()
@@ -127,14 +127,26 @@ class EdgeHand(object):
             peer, port = self.getPort()
             message = Message(Actions.TxRev, txn, port)
             if Utils.send_to_peer(message, peer):
-                logger.info(f'[EdgeHand] succeed to send TxRev ro {peer}')
+                logger.info(f'[EdgeHand] succeed to send TxRev to {peer}')
                 msg = self.getRecv(peer, port)
                 if msg:
                     logger.info(f'[EdgeHand] received TxConfirm True from {peer}')
                 else:
                     logger.info(f'[EdgeHand] TxConfirm failed')
             else:
-                logger.info(f'[EdgeHand] failed to send TxRev ro {peer}')
+                logger.info(f'[EdgeHand] failed to send TxRev to {peer}')
+
+    def getTxStatus(self, txid: str):
+        with self.chain_lock:
+            peer, port = self.getPort()
+            message = Message(Actions.TxStatusReq, txid, port)
+            if Utils.send_to_peer(message, peer):
+                logger.info(f'[EdgeHand] succeed to send UTXO4Addr to {peer}')
+                msg = self.getRecv(peer, port)
+                if msg:
+                    print(msg.data)
+            else:
+                logger.info(f'[EdgeHand] failed to send TxStatus to {peer}')
 
     def makeTxin(self, outpoint: OutPoint, txout: TxOut) -> TxIn:
         sequence = 0
@@ -151,6 +163,7 @@ if __name__ == '__main__':
         description='EdgeHand for EdgenceChain.')
     parser.add_argument('--wallet', required=False, default="mywallet.dat")
     parser.add_argument('--balance', required=False, default="")
+    parser.add_argument('--txn', required=False, default="")
     parser.add_argument('--utxo', required=False, default="")
     parser.add_argument('--send', required=False, default="")
     parser.add_argument('--value', required=False, default=0)
@@ -162,3 +175,5 @@ if __name__ == '__main__':
         edgehand.getUTXO4Addr(args.utxo)
     if args.send and int(args.value):
         edgehand.sendTransaction(args.send, int(args.value))
+    if args.txn:
+        edgehand.getTxStatus(args.txn)
