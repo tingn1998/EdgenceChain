@@ -37,27 +37,23 @@ class Peer(namedtuple("ip_port","ip,port")):
     def  __hash__(self):
         return hash(f'{self.ip}{self.port}')
 
-    #defualt to 127.0.0.1:9999
-    def __new__(cls,ip='127.0.0.1',port=9999):
-        #match IP address
+
+    def __new__(cls,ip='0.0.0.0',port=9999):
+        ip = str(ip)
         if re.match(r'(?<![\.\d])(?:25[0-5]\.|2[0-4]\d\.|[01]?\d\d?\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?![\.\d])',ip)==None:
-        #case I,is not a IP address use DNS
-        #replace the peer's name to the resolved name(which should be a IP addr.)
-        #catch errors if the name is not valid
             try:
-                ip=socket.gethostbyname(ip)
+                ip = socket.gethostbyname(ip.split('//')[-1].split('/')[0])
             except Exception:
                 logger.exception(f"[p2p] {ip} can not be resolved , maybe not a valid name")
+                return super().__new__(cls,'0.0.0.0',9999)
+
         else:
             pass
 
-        #strict check for ip:port 
         if re.match(r'^(?<![\.\d])(?:25[0-5]\.|2[0-4]\d\.|[01]?\d\d?\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?![\.\d])$',ip)!=None and re.match(r'^([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{4}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$',str(port))!=None:
             return super().__new__(cls, ip, port) 
         else:
-            #log a log if ip:port is not valid
-            logger.exception(f'[p2p] init peers exception：{ip}:{port} is not a valid [ip]:[port]')
-            #return 0.0.0.1:9999 to replace invalid ip:port, minimize loss
+            logger.info(f'[p2p] init peers exception：{ip}:{port} is not a valid [ip]:[port]')
             return super().__new__(cls,'0.0.0.0',9999)
 
 
