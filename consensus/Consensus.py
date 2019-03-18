@@ -25,8 +25,6 @@ class PoW(object):
         logger.info(f'[consensus] mining after block {block.prev_block_hash}')
         while int(Utils.sha256d(block.header(nonce)), 16) >= target:
             nonce += 1
-            if nonce % 500000 == 1:
-                logger.info(f'[consensus] mining +++ {nonce}')
 
             if mine_interrupt.is_set():
                 logger.info(f'[consensus] mining interrupted +++ {nonce}')
@@ -37,7 +35,7 @@ class PoW(object):
         duration = int(time.time() - start) or 0.001
         khs = (block.nonce // duration) // 1000
         logger.info(
-            f'[consensus] mining block found! {duration} s - {khs} KH/s - {block.id}')
+            f'[consensus] mining block found at nonce={nonce} using {duration} s - {khs} KH/s - {block.id}')
 
 
         return block
