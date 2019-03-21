@@ -95,10 +95,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
             return
         else:
             peer = Peer(str(self.request.getpeername()[0]), int(message.port))
-            if (peer.ip == '127.0.0.1' and peer.port == Params.PORT_CURRENT) or \
-                (peer.ip == 'localhost' and peer.port == Params.PORT_CURRENT) or \
-                    (peer.ip == '0.0.0.0') or \
-                    (peer.ip == Params.PUBLIC_IP and peer.port == Params.PORT_CURRENT):
+            if peer == Peer('127.0.0.1', Params.PORT_CURRENT) or \
+                peer == Peer('localhost', Params.PORT_CURRENT) or \
+                    peer.ip == '0.0.0.0' or \
+                    peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
                 logger.info(f'[p2p] new found {peer} is the current node itself, and does nothing for it')
                 return
 
@@ -108,8 +108,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
         action = int(message.action)
         if action == Actions.BlocksSyncReq:
             self.handleBlockSyncReq(message.data, peer)
-        elif action == Actions.BlocksSyncGet:
-            self.handleBlockSyncGet(message.data, peer)
         elif action == Actions.TxStatusReq:
             self.handleTxStatusReq(message.data, peer)
         elif action == Actions.UTXO4Addr:
@@ -118,8 +116,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
             self.handleBalance4Addr(message.data, peer)
         elif action == Actions.TxRev:
             self.handleTxRev(message.data, peer)
-        elif action == Actions.BlockRev:
-            self.handleBlockRev(message.data, peer)
         elif action == Actions.PeerExtend:
             self.handlePeerExtendGet(message.data, peer)
         elif action == Actions.TopBlocksSyncReq:
@@ -128,9 +124,16 @@ class TCPHandler(socketserver.BaseRequestHandler):
             logger.exception(f'[p2p] received unwanted action request ')
 
 
+        #elif action == Actions.BlocksSyncGet:
+        #    self.handleBlockSyncGet(message.data, peer)
+        #elif action == Actions.BlockRev:
+        #    self.handleBlockRev(message.data, peer)
+
+
+
     def sendPeerExtend(self):
         peer_samples = random.sample(self.peers, min(5, len(self.peers)))
-        for _peer in self.peers:
+        for _peer in peer_samples:
             logger.info(f"[p2p] sending {len(peer_samples)} peers to {_peer}")
             Utils.send_to_peer(Message(Actions.PeerExtend, peer_samples, Params.PORT_CURRENT), _peer)
 

@@ -11,18 +11,7 @@ logging.basicConfig(
     level=getattr(logging, os.environ.get('TC_LOG_LEVEL', 'INFO')),
     format='[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
-"""
->>> from Peer import Peer
->>> peer = Peer()
->>> peer.get()
-('localhost', 9999)
->>> peer = Peer('10.108.01.13')
->>> peer.get()
-('10.108.01.13', 9999)
->>> peer = Peer('10.108.01.13',18)
->>> peer.get()
-('10.108.01.13', 18)
-"""
+
 from params.Params import Params
 from utils.Utils import Utils
 
