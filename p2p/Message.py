@@ -24,7 +24,6 @@ class Actions:
     Balance4AddrRev = 9
     PeerExtend = 10
     TopBlocksSyncReq = 11
-    TxConfirm = 12
 
 
 class Message(NamedTuple):

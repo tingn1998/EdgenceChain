@@ -260,22 +260,15 @@ class TCPHandler(socketserver.BaseRequestHandler):
             logger.info(f"[p2p] received txn {txn.id} from peer {peer}")
             with self.chain_lock:
                 if self.mempool.add_txn_to_mempool(txn, self.utxo_set):
-                    Utils.send_to_peer(Message(Actions.TxConfirm, True, Params.PORT_CURRENT), peer)
                     for _peer in self.peers:
                         if _peer != peer:
                             Utils.send_to_peer(Message(Actions.TxRev, txn, Params.PORT_CURRENT), _peer)
                 else:
-                    print("here")
-                    Utils.send_to_peer(Message(Actions.TxConfirm, False, Params.PORT_CURRENT), peer)
+                    logger.info(f"[p2p] received txn {txn.id} validate failed.")
         else:
             logger.info(f'[p2p] {txn} is not a Transaction object in handleTxRev')
             return
 
-    def handleTxConfirm(self, confirm: bool, peer: Peer):
-        if confirm:
-            logger.info(f'[p2p] received TxConfirm True from {peer}')
-        else:
-            logger.info(f'[p2p] received TxConfirm False from {peer}')
 
     def handleBlockRev(self, block: Block, peer: Peer):
         if isinstance(block, Block):

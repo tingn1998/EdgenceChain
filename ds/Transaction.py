@@ -21,7 +21,6 @@ import binascii
 import ecdsa
 import logging
 import os
-import re
 
 
 
@@ -97,7 +96,7 @@ class Transaction(NamedTuple):
                     Utils.serialize(to_spend) + str(sequence) +
                     binascii.hexlify(pk).decode() + Utils.serialize(txouts)).encode()
 
-            pubkey_as_addr = re.findall('b\'(.+?)\'', Wallet.pubkey_to_address(txin.unlock_pk))[0]
+            pubkey_as_addr = Wallet.pubkey_to_address(txin.unlock_pk)
             verifying_key = ecdsa.VerifyingKey.from_string(
                 txin.unlock_pk, curve=ecdsa.SECP256k1)
 
