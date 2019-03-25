@@ -32,6 +32,7 @@ from ds.Block import Block
 from ds.Transaction import Transaction
 from ds.TxIn import TxIn
 from ds.TxOut import TxOut
+from ds.OutPoint import OutPoint
 
 from ds.MerkleNode import MerkleNode
 from utils.Errors import (BaseException, TxUnlockError, TxnValidationError, BlockValidationError)
@@ -78,8 +79,8 @@ def load_from_disk(active_chain: BlockChain, utxo_set: UTXO_Set, CHAIN_PATH=Para
             logger.info(f'[persistence] {block_len} is claimed at the head of chain file')
             msg_len = int(f.read(20))
             gs = dict()
-            gs['Block'], gs['Transaction'], gs['TxIn'], gs['TxOut'] = globals()['Block'], globals()['Transaction'], \
-                                                                      globals()['TxIn'], globals()['TxOut']
+            gs['Block'], gs['Transaction'], gs['TxIn'], gs['TxOut'], gs['OutPoint'] = globals()['Block'], \
+                                globals()['Transaction'], globals()['TxIn'], globals()['TxOut'], globals()['OutPoint']
 
             new_blocks = Utils.deserialize(f.read(msg_len), gs)
             logger.info(f"[persistence] parsing {len(new_blocks)} blocks from disk")
