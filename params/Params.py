@@ -60,6 +60,8 @@ class Params:
     # list of peers
     CHUNK_SIZE = int(50)
     MAXIMUM_ALLOWABLE_HEIGHT_DIFF = 60
+
+    PUBLIC_IP = ''
     PORT_CURRENT = int(9999)
     PEERS_FILE =  'seeds.node'
     CHAIN_FILE = 'chain.dat'

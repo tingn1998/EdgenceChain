@@ -2,7 +2,10 @@ from typing import (
     Iterable, NamedTuple, Dict, Mapping, Union, get_type_hints, Tuple,
     Callable)
 import os,logging,binascii
-
+#use regular expression to match non-IP
+import re
+import socket
+from collections import namedtuple
 
 logging.basicConfig(
     level=getattr(logging, os.environ.get('TC_LOG_LEVEL', 'INFO')),
@@ -23,9 +26,7 @@ logger = logging.getLogger(__name__)
 from params.Params import Params
 from utils.Utils import Utils
 
-class Peer(NamedTuple):
-    ip: str = '127.0.0.1'
-    port: int = 9999
+class Peer(namedtuple("ip_port","ip,port")):
 
     def __call__(self):
         return str(self.ip), int(self.port)
@@ -35,6 +36,26 @@ class Peer(NamedTuple):
 
     def  __hash__(self):
         return hash(f'{self.ip}{self.port}')
+
+
+    def __new__(cls,ip='0.0.0.0',port=9999):
+        ip = str(ip)
+        if re.match(r'(?<![\.\d])(?:25[0-5]\.|2[0-4]\d\.|[01]?\d\d?\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?![\.\d])',ip)==None:
+            try:
+                ip = socket.gethostbyname(ip.split('//')[-1].split('/')[0])
+            except Exception:
+                logger.exception(f"[p2p] {ip} can not be resolved , maybe not a valid name")
+                return super().__new__(cls,'0.0.0.0',9999)
+
+        else:
+            pass
+
+        if re.match(r'^(?<![\.\d])(?:25[0-5]\.|2[0-4]\d\.|[01]?\d\d?\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?![\.\d])$',ip)!=None and re.match(r'^([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{4}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$',str(port))!=None:
+            return super().__new__(cls, ip, port) 
+        else:
+            logger.info(f'[p2p] init peers exception：{ip}:{port} is not a valid [ip]:[port]')
+            return super().__new__(cls,'0.0.0.0',9999)
+
 
     @property
     def id(self):

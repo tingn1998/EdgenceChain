@@ -97,8 +97,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
         else:
             peer = Peer(str(self.request.getpeername()[0]), int(message.port))
             if (peer.ip == '127.0.0.1' and peer.port == Params.PORT_CURRENT) or \
-                (peer.ip == 'localhost' and peer.port == Params.PORT_CURRENT):
-                logger.exception(f'[p2p] new found {peer} is the current node itself, and does nothing for it')
+                (peer.ip == 'localhost' and peer.port == Params.PORT_CURRENT) or \
+                    (peer.ip == '0.0.0.0') or \
+                    (peer.ip == Params.PUBLIC_IP and peer.port == Params.PORT_CURRENT):
+                logger.info(f'[p2p] new found {peer} is the current node itself, and does nothing for it')
                 return
 
 
