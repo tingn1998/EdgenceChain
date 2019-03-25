@@ -109,6 +109,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
         action = int(message.action)
         if action == Actions.BlocksSyncReq:
             self.handleBlockSyncReq(message.data, peer)
+        elif action == Actions.BlocksSyncGet:
+            self.handleBlockSyncGet(message.data, peer)
         elif action == Actions.TxStatusReq:
             self.handleTxStatusReq(message.data, peer)
         elif action == Actions.UTXO4Addr:
@@ -117,18 +119,14 @@ class TCPHandler(socketserver.BaseRequestHandler):
             self.handleBalance4Addr(message.data, peer)
         elif action == Actions.TxRev:
             self.handleTxRev(message.data, peer)
+        elif action == Actions.BlockRev:
+            self.handleBlockRev(message.data, peer)
         elif action == Actions.PeerExtend:
             self.handlePeerExtendGet(message.data, peer)
         elif action == Actions.TopBlocksSyncReq:
             self.handleTopBlockSyncReq(message.data, peer)
         else:
             logger.exception(f'[p2p] received unwanted action request ')
-
-
-        #elif action == Actions.BlocksSyncGet:
-        #    self.handleBlockSyncGet(message.data, peer)
-        #elif action == Actions.BlockRev:
-        #    self.handleBlockRev(message.data, peer)
 
 
 
