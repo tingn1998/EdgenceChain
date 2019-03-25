@@ -84,14 +84,15 @@ class EdgenceChain(object):
                 timestamp=int(time.time()),
                 bits= Block.get_next_work_required(prev_block_hash, self.active_chain, self.side_branches),
                 nonce=0,
-                txns=txns or [],
+                txns=[None, *txns] if txns else [None],
             )
 
             if block.bits is None:
                 return None
 
-            if not block.txns:
+            if not block.txns[1:]:
                 block = self.mempool.select_from_mempool(block, self.utxo_set)
+                logger.info(f'{len(block.txns)} transactions selected from mempool to construct this block')
 
             fees = block.calculate_fees(self.utxo_set)
             my_address = self.wallet()[2]
@@ -99,8 +100,9 @@ class EdgenceChain(object):
                 my_address,
                 Block.get_block_subsidy(self.active_chain) + fees,
                 self.active_chain.height)
-        block = block._replace(txns=[coinbase_txn, *block.txns])
+        block.txns[0] = coinbase_txn
         block = block._replace(merkle_hash=MerkleNode.get_merkle_root_of_txns(block.txns).val)
+
 
         if len(Utils.serialize(block)) > Params.MAX_BLOCK_SERIALIZED_SIZE:
             raise ValueError('txns specified create a block too large')

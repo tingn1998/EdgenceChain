@@ -302,6 +302,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                 peers: Iterable[Peer]) -> bool:
         if int(chain_idx) == int(Params.ACTIVE_CHAIN_IDX):
             if block.block_subsidy_fees != Block.get_block_subsidy(active_chain) + block.calculate_fees(utxo_set):
+                logger.info(f'{block.block_subsidy_fees} != {Block.get_block_subsidy(active_chain)} + {block.calculate_fees(utxo_set)}')
                 logger.info(f'[p2p] subsidy and fees of this block are not right, so discard this block and return.')
                 #logger.info(f'after check subsid_fees, and give out a logger.exception')
                 return False
