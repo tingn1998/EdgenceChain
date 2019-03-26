@@ -143,7 +143,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
     def handleBlockSyncReq(self, blockid: str, peer: Peer):
 
         logger.info(f"[p2p] receive BlockSyncReq from peer {peer}")
-        if peer not in self.peers:
+        if (peer not in self.peers) and not (peer == Peer('127.0.0.1', Params.PORT_CURRENT) or \
+                peer == Peer('localhost', Params.PORT_CURRENT) or \
+                    peer.ip == '0.0.0.0' or \
+                    peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT)):
+
             self.peers.append(peer)
             logger.info(f'[p2p] add peer {peer} into peer list')
             Peer.save_peers(self.peers)
@@ -177,6 +181,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
         if self.request.sendall(Utils.encode_socket_data(message)) is None:
             if peer not in self.peers:
+                if peer== Peer('127.0.0.1', Params.PORT_CURRENT) or \
+                                peer == Peer('localhost', Params.PORT_CURRENT) or \
+                                    peer.ip == '0.0.0.0' or \
+                                    peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
+                    return
                 self.peers.append(peer)
                 logger.info(f'[p2p] add peer {peer} into peer list')
                 Peer.save_peers(self.peers)
@@ -327,7 +336,26 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     logger.info(f'[p2p] already seen block {block.id}, and do nothing')
                 elif chain_idx == -1:
                     #self.orphan_blocks.append(block)
-                    Utils.send_to_peer(Message(Actions.TopBlocksSyncReq, 50, Params.PORT_CURRENT), peer)
+                    message = Message(Actions.TopBlocksSyncReq, 50, Params.PORT_CURRENT)
+                    with socket.create_connection(peer(), timeout=10) as s:
+                        s.sendall(Utils.encode_socket_data(message))
+                        logger.info(f'[EdgeHand] succeed to send TopBlocksSyncReq to {peer}')
+                        msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
+                        data = b''
+                        while msg_len > 0:
+                            tdat = s.recv(1024)
+                            data += tdat
+                            msg_len -= len(tdat)
+
+                        message = Utils.deserialize(data.decode(), self.gs) if data else None
+                        if message:
+                            logger.info(f'[EdgeHand] received blocks from peer {peer}')
+                            message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
+                            Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
+                            logger.info(f'[EdgeHand] send BlocksSyncGet to itself')
+                        else:
+                            logger.info(f'[EdgeHand] failed to resolve message from peer {peer}')
+
 
         else:
             logger.info(f'[p2p] {block} is not a Block')
@@ -345,7 +373,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                 peers: Iterable[Peer]) -> bool:
         if int(chain_idx) == int(Params.ACTIVE_CHAIN_IDX):
             if block.block_subsidy_fees != Block.get_block_subsidy(active_chain) + block.calculate_fees(utxo_set):
-                logger.info(f'{block.block_subsidy_fees} != {Block.get_block_subsidy(active_chain)} + {block.calculate_fees(utxo_set)}')
+                #logger.info(f'{block.block_subsidy_fees} != {Block.get_block_subsidy(active_chain)} + {block.calculate_fees(utxo_set)}')
                 logger.info(f'[p2p] subsidy and fees of this block are not right, so discard this block and return.')
                 #logger.info(f'after check subsid_fees, and give out a logger.exception')
                 return False
@@ -441,8 +469,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
         for peer_sample in peer_samples:
             if not isinstance(peer_sample, Peer):
                 continue
-            if peer_sample.ip == '127.0.0.1' and peer_sample.port == Params.PORT_CURRENT or \
-                peer_sample.ip == 'localhost' and peer_sample.port == Params.PORT_CURRENT:
+            if peer_sample == Peer('127.0.0.1', Params.PORT_CURRENT) or \
+                peer_sample == Peer('localhost', Params.PORT_CURRENT) or \
+                    peer_sample.ip == '0.0.0.0' or \
+                    peer_sample == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
                 continue
             if peer_sample in self.peers:
                 continue

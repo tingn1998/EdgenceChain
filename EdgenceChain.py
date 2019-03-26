@@ -20,7 +20,10 @@ from utils.Utils import Utils
 
 from params.Params import Params
 
-
+from ds.OutPoint import OutPoint
+from ds.UnspentTxOut import UnspentTxOut
+from ds.TxIn import TxIn
+from ds.TxOut import TxOut
 from ds.Transaction import Transaction
 from ds.Block import Block
 from ds.UTXO_Set import UTXO_Set
@@ -65,6 +68,11 @@ class EdgenceChain(object):
         self.mine_interrupt: threading.Event = threading.Event()
         self.ibd_done: threading.Event = threading.Event()
         self.chain_lock: _thread.RLock = threading.RLock()
+
+        self.gs = dict()
+        self.gs['Block'], self.gs['Transaction'], self.gs['UnspentTxOut'], self.gs['Message'], self.gs['TxIn'], self.gs['TxOut'], self.gs['Peer'], self.gs['OutPoint']= \
+                    globals()['Block'], globals()['Transaction'], globals()['UnspentTxOut'], globals()['Message'], \
+                    globals()['TxIn'], globals()['TxOut'], globals()['Peer'], globals()['OutPoint']
 
 
 
@@ -121,29 +129,30 @@ class EdgenceChain(object):
 
             message = Message(Actions.BlocksSyncReq, self.active_chain.chain[-1].id, Params.PORT_CURRENT)
             for peer in peer_sample:
-                with socket.create_connection(peer(), timeout=10) as s:
-                    s.sendall(Utils.encode_socket_data(message))
-                    logger.info(f'[EdgeHand] succeed to send BlocksSyncReq to {peer}')
-                    msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
-                    data = b''
-                    while msg_len > 0:
-                        tdat = s.recv(1024)
-                        data += tdat
-                        msg_len -= len(tdat)
+                try:
+                    with socket.create_connection(peer(), timeout=10) as s:
+                        s.sendall(Utils.encode_socket_data(message))
+                        logger.info(f'[EdgeHand] succeed to send BlocksSyncReq to {peer}')
+                        msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
+                        data = b''
+                        while msg_len > 0:
+                            tdat = s.recv(1024)
+                            data += tdat
+                            msg_len -= len(tdat)
 
-                    message = Utils.deserialize(data.decode(), self.gs) if data else None
-                    if message:
-                        logger.info(f'[EdgeHand] received blocks from peer {peer}')
-                        message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
-                        Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
-                        logger.info(f'[EdgeHand] send BlocksSyncGet to itself')
-                    else:
-                        logger.info(f'[EdgeHand] failed to resolve message from peer {peer}')
+                        message = Utils.deserialize(data.decode(), self.gs) if data else None
+                        if message:
+                            logger.info(f'[EdgeHand] received blocks from peer {peer}')
+                            message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
+                            Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
+                            logger.info(f'[EdgeHand] send BlocksSyncGet to itself')
+                        else:
+                            logger.info(f'[EdgeHand] failed to resolve message from peer {peer}')
+                except:
+                    logger.info(f'remove dead peer {peer}')
+                    self.peers.remove(peer)
+                    Peer.save_peers(self.peers)
 
-
-                    #self.peers.remove(peer)
-                    #Peer.save_peers(self.peers)
-                    #logger.info(f'remove dead peer {peer}')
         else:
             logger.info(f'no peer nodes existed, ibd_done is set')
             self.ibd_done.set()
