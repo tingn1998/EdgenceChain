@@ -66,6 +66,9 @@ class Transaction(NamedTuple):
             raise TxnValidationError('Missing txouts')
         if not as_coinbase and not self.txins:
             raise TxnValidationError('MIssing txins for not coinbase transation')
+        if not as_coinbase:
+            if None in [txin.to_spend for txin in self.txins]:
+                raise TxnValidationError('None to spend for not coinbase transation')
         if as_coinbase and len(self.txins)>1:
             raise TxnValidationError('Coinbase transaction has more than one TxIns')
         if as_coinbase and self.txins[0].to_spend is not None:

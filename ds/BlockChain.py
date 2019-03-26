@@ -53,7 +53,8 @@ class BlockChain(BaseBlockChain):
         block = self.chain[-1]
 
         for tx in block.txns:
-            mempool.mempool[tx.id] = tx
+            if tx.txins[0].to_spend is not None:
+                mempool.mempool[tx.id] = tx
 
             # Restore UTXO set to what it was before this block.
             for txin in tx.txins:
