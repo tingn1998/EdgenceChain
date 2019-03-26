@@ -80,13 +80,13 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
 
-        gs = dict()
-        gs['Block'], gs['Transaction'], gs['UnspentTxOut'], gs['Message'], gs['TxIn'], gs['TxOut'], gs['Peer'], gs['OutPoint']= \
+        self.gs = dict()
+        self.gs['Block'], self.gs['Transaction'], self.gs['UnspentTxOut'], self.gs['Message'], self.gs['TxIn'], self.gs['TxOut'], self.gs['Peer'], self.gs['OutPoint']= \
                     globals()['Block'], globals()['Transaction'], globals()['UnspentTxOut'], globals()['Message'], \
                     globals()['TxIn'], globals()['TxOut'], globals()['Peer'], globals()['OutPoint']
         try:
             #logger.info(f'type of self.request is {type(self.request)} before read')
-            message = Utils.read_all_from_socket(self.request, gs)
+            message = Utils.read_all_from_socket(self.request, self.gs)
             #logger.info(f'message is {message}')
             #logger.info(f'type of self.request is {type(self.request)} after read')
         except:
@@ -99,12 +99,12 @@ class TCPHandler(socketserver.BaseRequestHandler):
             return
         else:
             peer = Peer(str(self.request.getpeername()[0]), int(message.port))
-            if peer == Peer('127.0.0.1', Params.PORT_CURRENT) or \
-                peer == Peer('localhost', Params.PORT_CURRENT) or \
-                    peer.ip == '0.0.0.0' or \
-                    peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
-                logger.info(f'[p2p] new found {peer} is the current node itself, and does nothing for it')
-                return
+            #if peer == Peer('127.0.0.1', Params.PORT_CURRENT) or \
+            #    peer == Peer('localhost', Params.PORT_CURRENT) or \
+            #        peer.ip == '0.0.0.0' or \
+            #        peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
+            #    logger.info(f'[p2p] new found {peer} is the current node itself, and does nothing for it')
+            #    return
 
 
 
@@ -112,6 +112,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
         action = int(message.action)
         if action == Actions.BlocksSyncReq:
             self.handleBlockSyncReq(message.data, peer)
+        elif action == Actions.BlocksSyncGet:
+            self.handleBlockSyncGet(message.data, peer)
         elif action == Actions.TxStatusReq:
             self.handleTxStatusReq(message.data, peer)
         elif action == Actions.UTXO4Addr:
@@ -129,8 +131,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         else:
             logger.exception(f'[p2p] received unwanted action request ')
 
-        #elif action == Actions.BlocksSyncGet:
-        #    self.handleBlockSyncGet(message.data, peer)
+
 
 
     def sendPeerExtend(self):
@@ -158,13 +159,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
             blocks = self.active_chain.chain[height:(height + Params.CHUNK_SIZE)]
 
         logger.info(f"[p2p] sending {len(blocks)} blocks to {peer}")
-        if Utils.send_to_peer(Message(Actions.BlocksSyncGet, blocks, Params.PORT_CURRENT), peer):
-            pass
-            #if peer not in self.peers:
-            #    self.peers.append(peer)
-            #    logger.info(f'[p2p] add peer {peer} into peer list')
-            #    Peer.save_peers(self.peers)
-            #    self.sendPeerExtend()
+
+        message = Message(Actions.BlocksSyncGet, blocks, Params.PORT_CURRENT)
+        self.request.sendall(Utils.encode_socket_data(message))
+
+
 
     def handleTopBlockSyncReq(self, topN: int, peer: Peer):
         with self.chain_lock:
@@ -172,7 +171,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
             blocks = self.active_chain.chain[-topN:]
 
         logger.info(f"[p2p] sending {len(blocks)} blocks to {peer}")
-        if Utils.send_to_peer(Message(Actions.BlocksSyncGet, blocks, Params.PORT_CURRENT), peer):
+
+        message = Message(Actions.BlocksSyncGet, blocks, Params.PORT_CURRENT)
+        self.request.sendall(Utils.encode_socket_data(message))
+
+        if self.request.sendall(Utils.encode_socket_data(message)) is None:
             if peer not in self.peers:
                 self.peers.append(peer)
                 logger.info(f'[p2p] add peer {peer} into peer list')
@@ -229,7 +232,28 @@ class TCPHandler(socketserver.BaseRequestHandler):
             new_tip_id = self.active_chain.chain[-1].id
         logger.info(f'[p2p] current chain height {self.active_chain.height}, and continue initial block download ... ')
 
-        Utils.send_to_peer(Message(Actions.BlocksSyncReq, new_tip_id, Params.PORT_CURRENT), peer)
+        message = Message(Actions.BlocksSyncReq, new_tip_id, Params.PORT_CURRENT)
+
+        with socket.create_connection(peer(), timeout=10) as s:
+            s.sendall(Utils.encode_socket_data(message))
+            logger.info(f'[EdgeHand] succeed to send BlocksSyncReq to {peer}')
+            msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
+            data = b''
+            while msg_len > 0:
+                tdat = s.recv(1024)
+                data += tdat
+                msg_len -= len(tdat)
+
+            message = Utils.deserialize(data.decode(), self.gs) if data else None
+            if message:
+                logger.info(f'[EdgeHand] received blocks from peer {peer}')
+                message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
+                Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
+                logger.info(f'[EdgeHand] send BlocksSyncGet to itself')
+            else:
+                logger.info(f'[EdgeHand] failed to resolve message from peer {peer}')
+
+
 
     def handleTxStatusReq(self, txid: str, peer: Peer):
         def _txn_iterator(chain):

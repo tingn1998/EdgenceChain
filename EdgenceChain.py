@@ -117,13 +117,33 @@ class EdgenceChain(object):
         self.ibd_done.clear()
         if self.peers:
             logger.info(f'start initial block download from {len(self.peers)} peers')
-            peer_sample = random.sample(self.peers, min(len(self.peers),5))
+            peer_sample = random.sample(self.peers, min(len(self.peers),3))
+
+            message = Message(Actions.BlocksSyncReq, self.active_chain.chain[-1].id, Params.PORT_CURRENT)
             for peer in peer_sample:
-                if not Utils.send_to_peer(Message(Actions.BlocksSyncReq, self.active_chain.chain[-1].id, \
-                                              Params.PORT_CURRENT), peer):
-                    self.peers.remove(peer)
-                    Peer.save_peers(self.peers)
-                    logger.info(f'remove dead peer {peer}')
+                with socket.create_connection(peer(), timeout=10) as s:
+                    s.sendall(Utils.encode_socket_data(message))
+                    logger.info(f'[EdgeHand] succeed to send BlocksSyncReq to {peer}')
+                    msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
+                    data = b''
+                    while msg_len > 0:
+                        tdat = s.recv(1024)
+                        data += tdat
+                        msg_len -= len(tdat)
+
+                    message = Utils.deserialize(data.decode(), self.gs) if data else None
+                    if message:
+                        logger.info(f'[EdgeHand] received blocks from peer {peer}')
+                        message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
+                        Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
+                        logger.info(f'[EdgeHand] send BlocksSyncGet to itself')
+                    else:
+                        logger.info(f'[EdgeHand] failed to resolve message from peer {peer}')
+
+
+                    #self.peers.remove(peer)
+                    #Peer.save_peers(self.peers)
+                    #logger.info(f'remove dead peer {peer}')
         else:
             logger.info(f'no peer nodes existed, ibd_done is set')
             self.ibd_done.set()
