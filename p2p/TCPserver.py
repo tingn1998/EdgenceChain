@@ -85,10 +85,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     globals()['Block'], globals()['Transaction'], globals()['UnspentTxOut'], globals()['Message'], \
                     globals()['TxIn'], globals()['TxOut'], globals()['Peer'], globals()['OutPoint']
         try:
-            logger.info(f'type of self.request is {type(self.request)} before read')
+            #logger.info(f'type of self.request is {type(self.request)} before read')
             message = Utils.read_all_from_socket(self.request, gs)
-            logger.info(f'message is {message}')
-            logger.info(f'type of self.request is {type(self.request)} after read')
+            #logger.info(f'message is {message}')
+            #logger.info(f'type of self.request is {type(self.request)} after read')
         except:
             logger.exception(f'[p2p] Invalid meassage from peer {self.request.getpeername()[0]}')
             return
@@ -239,20 +239,28 @@ class TCPHandler(socketserver.BaseRequestHandler):
         with self.chain_lock:
             if txid in self.mempool.mempool:
                 status = 0 #f'txn {txid} found in_mempool'
-                Utils.send_to_peer(Message(Actions.TxStatusRev, status, Params.PORT_CURRENT), peer)
+                message = Message(Actions.TxStatusRev, status, Params.PORT_CURRENT)
+                #print(message)
+                self.request.sendall(Utils.encode_socket_data(message))
                 return
             for tx, block, height in _txn_iterator(self.active_chain.chain):
                 if tx.id == txid:
                     status = 1 #f'txn {txid} is mined in block {block.id} at height {height}'
-                    Utils.send_to_peer(Message(Actions.TxStatusRev, status, Params.PORT_CURRENT), peer)
+                    message = Message(Actions.TxStatusRev, status, Params.PORT_CURRENT)
+                    self.request.sendall(Utils.encode_socket_data(message))
                     return
         status = 2 #f'txn {txid}:not_found'
-        Utils.send_to_peer(Message(Actions.TxStatusRev, status, Params.PORT_CURRENT), peer)
+        message = Message(Actions.TxStatusRev, status, Params.PORT_CURRENT)
+        #print(message)
+        self.request.sendall(Utils.encode_socket_data(message))
 
     def handleUTXO4Addr(self, addr: str, peer: Peer):
         with self.chain_lock:
             utxos4addr = [u for u in self.utxo_set.utxoSet.values() if u.to_address == addr]
-        Utils.send_to_peer(Message(Actions.UTXO4AddrRev, utxos4addr, Params.PORT_CURRENT), peer)
+
+        message = Message(Actions.UTXO4AddrRev, utxos4addr, Params.PORT_CURRENT)
+        #print(message)
+        self.request.sendall(Utils.encode_socket_data(message))
 
     def handleBalance4Addr(self, addr: str, peer: Peer):
 
@@ -260,8 +268,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
             utxos4addr = [u for u in self.utxo_set.utxoSet.values() if u.to_address == addr]
         val = sum(utxo.value for utxo in utxos4addr)
 
-
-        logger.info(f'type of self.request in handleBalance4Addr is {type(self.request)}')
+        #logger.info(f'type of self.request in handleBalance4Addr is {type(self.request)}')
         message = Message(Actions.Balance4AddrRev, val, Params.PORT_CURRENT)
         self.request.sendall(Utils.encode_socket_data(message))
 
