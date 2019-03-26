@@ -283,6 +283,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     if not TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, self.side_branches, \
                                                        self.mempool, self.utxo_set, self.mine_interrupt, self.peers):
                         return
+                    self.sendPeerExtend()
                 elif chain_idx is None:
                     logger.info(f'[p2p] already seen block {block.id}, and do nothing')
                 elif chain_idx == -1:
@@ -401,8 +402,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
         for peer_sample in peer_samples:
             if not isinstance(peer_sample, Peer):
                 continue
-            if peer_sample.ip == '127.0.0.1' and peer_sample.port == Params.PORT_CURRENT or \
-                peer_sample.ip == 'localhost' and peer_sample.port == Params.PORT_CURRENT:
+
+            if peer_sample == Peer('127.0.0.1', Params.PORT_CURRENT) or \
+                peer_sample == Peer('localhost', Params.PORT_CURRENT) or \
+                    peer_sample.ip == '0.0.0.0' or \
+                    peer_sample == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
                 continue
             if peer_sample in self.peers:
                 continue
