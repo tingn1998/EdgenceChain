@@ -1,3 +1,7 @@
+"""
+the package realize the mapping process of the opcode and the OPCODE_NAME.
+"""
+
 __all__ = ['DISABLED', 'OPCODE_NAMES', 'OP_0', 'OP_0NOTEQUAL', 'OP_1', 'OP_10',
            'OP_11', 'OP_12', 'OP_13', 'OP_14', 'OP_15', 'OP_16', 'OP_1ADD',
            'OP_1NEGATE', 'OP_1SUB', 'OP_2', 'OP_2DIV', 'OP_2DROP', 'OP_2DUP',

@@ -1,3 +1,12 @@
+"""
+this package is used to realize the public tool-functions get_vector and get_value.
+self.__vector = get_vector(value)  # Convert an integer into a byte-vector string.
+self.__value = get_value(vector)  # Convert a byte-vector string into an integer
+
+Class ByteVector is designed for operating the stack value with the vector.
+"""
+
+
 import operator
 
 __all__ = ['ByteVector']

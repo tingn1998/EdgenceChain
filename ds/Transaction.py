@@ -31,9 +31,6 @@ logger = logging.getLogger(__name__)
 
 # Used to represent the specific output within a transaction.
 
-
-
-
 class Transaction(NamedTuple):
     txins: Iterable[TxIn]
     txouts: Iterable[TxOut]
