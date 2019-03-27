@@ -130,7 +130,7 @@ class EdgenceChain(object):
             message = Message(Actions.BlocksSyncReq, self.active_chain.chain[-1].id, Params.PORT_CURRENT)
             for peer in peer_sample:
                 try:
-                    with socket.create_connection(peer(), timeout=10) as s:
+                    with socket.create_connection(peer(), timeout=25) as s:
                         s.sendall(Utils.encode_socket_data(message))
                         logger.info(f'[EdgeHand] succeed to send BlocksSyncReq to {peer}')
                         msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
@@ -204,7 +204,7 @@ class EdgenceChain(object):
                     message = Message(Actions.TopBlockReq, None, Params.PORT_CURRENT)
 
 
-                    with socket.create_connection(peer(), timeout=10) as s:
+                    with socket.create_connection(peer(), timeout=25) as s:
                         s.sendall(Utils.encode_socket_data(message))
                         logger.info(f'[EdgenceChain] succeed to send TopBlockReq to {peer}')
                         msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)

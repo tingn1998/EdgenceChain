@@ -262,7 +262,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
         message = Message(Actions.BlocksSyncReq, new_tip_id, Params.PORT_CURRENT)
 
-        with socket.create_connection(peer(), timeout=10) as s:
+        with socket.create_connection(peer(), timeout=25) as s:
             s.sendall(Utils.encode_socket_data(message))
             logger.info(f'[EdgeHand] succeed to send BlocksSyncReq to {peer}')
             msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
@@ -357,7 +357,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 elif chain_idx == -1:
                     #self.orphan_blocks.append(block)
                     message = Message(Actions.TopBlocksSyncReq, 50, Params.PORT_CURRENT)
-                    with socket.create_connection(peer(), timeout=10) as s:
+                    with socket.create_connection(peer(), timeout=25) as s:
                         s.sendall(Utils.encode_socket_data(message))
                         logger.info(f'[EdgeHand] succeed to send TopBlocksSyncReq to {peer}')
                         msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
