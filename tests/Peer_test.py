@@ -17,4 +17,4 @@ print(peer2.__eq__(Peer('10.108.01.13', 9999)))
 print(peer1 == peer2)
 print(peer2 == Peer('10.108.01.13', 9999))
 
-
+print(Peer('127.0.0.1', 1000) == Peer('localhost', 1000))
