@@ -145,6 +145,22 @@ class TCPHandler(socketserver.BaseRequestHandler):
     def handleBlockSyncReq(self, blockid: str, peer: Peer):
 
         logger.info(f"[p2p] receive BlockSyncReq from peer {peer}")
+
+
+        #with self.chain_lock:
+        height = Block.locate_block(blockid, self.active_chain)[1]
+        if height is None:
+            logger.info(f'[p2p] cannot find blockid {blockid}, and do nothing for this BlockSyncReq from peer {peer}')
+            return
+        else:
+            logger.info(f"[p2p] receive BlockSyncReq at height {height} from peer {peer}")
+        blocks = self.active_chain.chain[height:(height + Params.CHUNK_SIZE)]
+
+        logger.info(f"[p2p] sending {len(blocks)} blocks to {peer}")
+
+        message = Message(Actions.BlocksSyncGet, blocks, Params.PORT_CURRENT)
+        self.request.sendall(Utils.encode_socket_data(message))
+
         if (peer not in self.peers) and not (peer == Peer('127.0.0.1', Params.PORT_CURRENT) or \
                 peer == Peer('localhost', Params.PORT_CURRENT) or \
                     peer.ip == '0.0.0.0' or \
@@ -155,33 +171,18 @@ class TCPHandler(socketserver.BaseRequestHandler):
             Peer.save_peers(self.peers)
             self.sendPeerExtend()
 
-        with self.chain_lock:
-            height = Block.locate_block(blockid, self.active_chain)[1]
-            if height is None:
-                logger.info(f'[p2p] cannot find blockid {blockid}, and do nothing for this BlockSyncReq from peer {peer}')
-                return
-            else:
-                logger.info(f"[p2p] receive BlockSyncReq at height {height} from peer {peer}")
-            blocks = self.active_chain.chain[height:(height + Params.CHUNK_SIZE)]
-
-        logger.info(f"[p2p] sending {len(blocks)} blocks to {peer}")
-
-        message = Message(Actions.BlocksSyncGet, blocks, Params.PORT_CURRENT)
-        self.request.sendall(Utils.encode_socket_data(message))
-
-
 
     def handleTopBlockSyncReq(self, topN: int, peer: Peer):
-        with self.chain_lock:
-            logger.info(f"[p2p] receive TopBlockSyncReq with length {topN} from peer {peer}")
-            blocks = self.active_chain.chain[-topN:]
+        #with self.chain_lock:
+        logger.info(f"[p2p] receive TopBlockSyncReq with length {topN} from peer {peer}")
+        blocks = self.active_chain.chain[-topN:]
 
         logger.info(f"[p2p] sending {len(blocks)} blocks to {peer}")
 
         message = Message(Actions.BlocksSyncGet, blocks, Params.PORT_CURRENT)
-        #self.request.sendall(Utils.encode_socket_data(message))
+        ret = self.request.sendall(Utils.encode_socket_data(message))
 
-        if self.request.sendall(Utils.encode_socket_data(message)) is None:
+        if ret is None:
             if peer not in self.peers:
                 if peer== Peer('127.0.0.1', Params.PORT_CURRENT) or \
                                 peer == Peer('localhost', Params.PORT_CURRENT) or \
@@ -288,43 +289,42 @@ class TCPHandler(socketserver.BaseRequestHandler):
             return (
                 (txn, block, height)
                 for height, block in enumerate(chain, 1) for txn in block.txns)
-        with self.chain_lock:
-            if txid in self.mempool.mempool:
-                status = 0 #f'txn {txid} found in_mempool'
+        #with self.chain_lock:
+        if txid in self.mempool.mempool:
+            status = 0 #f'txn {txid} found in_mempool'
+            message = Message(Actions.TxStatusRev, status, Params.PORT_CURRENT)
+            #print(message)
+            self.request.sendall(Utils.encode_socket_data(message))
+            return
+        for tx, block, height in _txn_iterator(self.active_chain.chain):
+            if tx.id == txid:
+                status = 1 #f'txn {txid} is mined in block {block.id} at height {height}'
                 message = Message(Actions.TxStatusRev, status, Params.PORT_CURRENT)
-                #print(message)
                 self.request.sendall(Utils.encode_socket_data(message))
                 return
-            for tx, block, height in _txn_iterator(self.active_chain.chain):
-                if tx.id == txid:
-                    status = 1 #f'txn {txid} is mined in block {block.id} at height {height}'
-                    message = Message(Actions.TxStatusRev, status, Params.PORT_CURRENT)
-                    self.request.sendall(Utils.encode_socket_data(message))
-                    return
         status = 2 #f'txn {txid}:not_found'
         message = Message(Actions.TxStatusRev, status, Params.PORT_CURRENT)
-        #print(message)
+
         self.request.sendall(Utils.encode_socket_data(message))
 
     def handleUTXO4Addr(self, addr: str, peer: Peer):
-        with self.chain_lock:
-            utxos4addr = [u for u in self.utxo_set.utxoSet.values() if u.to_address == addr]
+        #with self.chain_lock:
+        utxos4addr = [u for u in self.utxo_set.utxoSet.values() if u.to_address == addr]
 
         message = Message(Actions.UTXO4AddrRev, utxos4addr, Params.PORT_CURRENT)
-        #print(message)
+
         self.request.sendall(Utils.encode_socket_data(message))
 
     def handleBalance4Addr(self, addr: str, peer: Peer):
 
-        with self.chain_lock:
-            utxos4addr = [u for u in self.utxo_set.utxoSet.values() if u.to_address == addr]
+        #with self.chain_lock:
+        utxos4addr = [u for u in self.utxo_set.utxoSet.values() if u.to_address == addr]
         val = sum(utxo.value for utxo in utxos4addr)
 
-        #logger.info(f'type of self.request in handleBalance4Addr is {type(self.request)}')
+
         message = Message(Actions.Balance4AddrRev, val, Params.PORT_CURRENT)
         self.request.sendall(Utils.encode_socket_data(message))
 
-        #Utils.send_to_peer(Message(Actions.Balance4AddrRev, val, Params.PORT_CURRENT), peer)
 
     def handleTxRev(self, txn: Transaction, peer: Peer):
         if isinstance(txn, Transaction):
@@ -352,29 +352,29 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                                        self.mempool, self.utxo_set, self.mine_interrupt, self.peers):
                         return
                     self.sendPeerExtend()
-                elif chain_idx is None:
-                    logger.info(f'[p2p] already seen block {block.id}, and do nothing')
-                elif chain_idx == -1:
-                    #self.orphan_blocks.append(block)
-                    message = Message(Actions.TopBlocksSyncReq, 50, Params.PORT_CURRENT)
-                    with socket.create_connection(peer(), timeout=25) as s:
-                        s.sendall(Utils.encode_socket_data(message))
-                        logger.info(f'[EdgeHand] succeed to send TopBlocksSyncReq to {peer}')
-                        msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
-                        data = b''
-                        while msg_len > 0:
-                            tdat = s.recv(1024)
-                            data += tdat
-                            msg_len -= len(tdat)
+            if chain_idx is None:
+                logger.info(f'[p2p] already seen block {block.id}, and do nothing')
+            elif chain_idx == -1:
+                #case of orphan block
+                message = Message(Actions.TopBlocksSyncReq, 50, Params.PORT_CURRENT)
+                with socket.create_connection(peer(), timeout=25) as s:
+                    s.sendall(Utils.encode_socket_data(message))
+                    logger.info(f'[EdgeHand] succeed to send TopBlocksSyncReq to {peer}')
+                    msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
+                    data = b''
+                    while msg_len > 0:
+                        tdat = s.recv(1024)
+                        data += tdat
+                        msg_len -= len(tdat)
 
-                    message = Utils.deserialize(data.decode(), self.gs) if data else None
-                    if message:
-                        logger.info(f'[EdgeHand] received blocks from peer {peer}')
-                        message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
-                        Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
-                        logger.info(f'[EdgeHand] send BlocksSyncGet to itself')
-                    else:
-                        logger.info(f'[EdgeHand] failed to resolve message from peer {peer}')
+                message = Utils.deserialize(data.decode(), self.gs) if data else None
+                if message:
+                    logger.info(f'[EdgeHand] received blocks from peer {peer}')
+                    message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
+                    Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
+                    logger.info(f'[EdgeHand] send BlocksSyncGet to itself')
+                else:
+                    logger.info(f'[EdgeHand] failed to resolve message from peer {peer}')
 
 
         else:
