@@ -186,14 +186,16 @@ class Block(NamedTuple):
                        side_branches: Iterable[BaseBlockChain] = None) -> int:
         logger.info(f'[p2p] already in another validate_block process')
 
-        def _get_median_time_past(num_last_blocks: int) -> int:
-            """Grep for: GetMedianTimePast."""
-            last_n_blocks = active_chain.chain[::-1][:num_last_blocks]
+        def _get_median_time_past(prev_block, prev_block_height, prev_block_chain_idx, num_last_blocks: int = 11) -> int:
 
-            if not last_n_blocks:
+            if Params.ACTIVE_CHAIN_IDX == prev_block_chain_idx:
+                last_n_blocks = active_chain.chain[:prev_block_height][::-1][:num_last_blocks]
+                if not last_n_blocks:
+                    return 0
+                return last_n_blocks[len(last_n_blocks) // 2].timestamp
+            else:
                 return 0
-
-            return last_n_blocks[len(last_n_blocks) // 2].timestamp
+                #side_branches[prev_block_chain_idx-1]
 
 
         if not self.txns:
@@ -219,7 +221,7 @@ class Block(NamedTuple):
             raise BlockValidationError('Merkle hash invalid')
 
 
-        #a
+
         if not self.prev_block_hash and active_chain.height == 1 and self.id == active_chain.chain[0].id:
             # this block is the genesis block
             if self.timestamp >= int(time.time()):
@@ -227,28 +229,24 @@ class Block(NamedTuple):
             if self.bits != Params.INITIAL_DIFFICULTY_BITS:
                 raise BlockValidationError(f'bits of genesis block is incorrect, so the node cannot be builded successfully')
 
-            #try:
-            #    self.txns[0].validate_basics()
-            #except TxnValidationError:
-            #    msg = f"[ds] coinbase transaction {txn} in genesis block failed to validate"
-            #    logger.exception(msg)
-            #    raise BlockValidationError(msg)
             return Params.ACTIVE_CHAIN_IDX
         else:
-            if self.timestamp <= _get_median_time_past(11):
-                raise BlockValidationError('timestamp too old')
+
             prev_block, prev_block_height, prev_block_chain_idx = Block.locate_block(
                 self.prev_block_hash, active_chain, side_branches)
 
             if not prev_block:
-                raise BlockValidationError(
-                    f'prev block {self.prev_block_hash} not found in any chain',
+                raise BlockValidationError(f'prev block {self.prev_block_hash} not found in any chain',
                     to_orphan=self)
+
+            if self.timestamp <= _get_median_time_past(prev_block, prev_block_height, prev_block_chain_idx):
+                raise BlockValidationError('timestamp too old')
 
 
             # No more validation for a block getting attached to a branch.
             if prev_block_chain_idx != Params.ACTIVE_CHAIN_IDX:
                 return prev_block_chain_idx
+
 
             # Prev. block found in active chain, but isn't tip => new fork.
             elif prev_block != active_chain.chain[-1]:
