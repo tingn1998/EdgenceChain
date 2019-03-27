@@ -272,14 +272,14 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 data += tdat
                 msg_len -= len(tdat)
 
-            message = Utils.deserialize(data.decode(), self.gs) if data else None
-            if message:
-                logger.info(f'[EdgeHand] received blocks from peer {peer}')
-                message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
-                Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
-                logger.info(f'[EdgeHand] send BlocksSyncGet to itself')
-            else:
-                logger.info(f'[EdgeHand] failed to resolve message from peer {peer}')
+        message = Utils.deserialize(data.decode(), self.gs) if data else None
+        if message:
+            logger.info(f'[EdgeHand] received blocks from peer {peer}')
+            message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
+            Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
+            logger.info(f'[EdgeHand] send BlocksSyncGet to itself')
+        else:
+            logger.info(f'[EdgeHand] failed to resolve message from peer {peer}')
 
 
 
@@ -367,14 +367,14 @@ class TCPHandler(socketserver.BaseRequestHandler):
                             data += tdat
                             msg_len -= len(tdat)
 
-                        message = Utils.deserialize(data.decode(), self.gs) if data else None
-                        if message:
-                            logger.info(f'[EdgeHand] received blocks from peer {peer}')
-                            message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
-                            Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
-                            logger.info(f'[EdgeHand] send BlocksSyncGet to itself')
-                        else:
-                            logger.info(f'[EdgeHand] failed to resolve message from peer {peer}')
+                    message = Utils.deserialize(data.decode(), self.gs) if data else None
+                    if message:
+                        logger.info(f'[EdgeHand] received blocks from peer {peer}')
+                        message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
+                        Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
+                        logger.info(f'[EdgeHand] send BlocksSyncGet to itself')
+                    else:
+                        logger.info(f'[EdgeHand] failed to resolve message from peer {peer}')
 
 
         else:
