@@ -128,6 +128,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
             self.handlePeerExtendGet(message.data, peer)
         elif action == Actions.TopBlocksSyncReq:
             self.handleTopBlockSyncReq(message.data, peer)
+        elif action == Actions.TopBlockReq:
+            self.handleTopBlockReq(peer)
         else:
             logger.exception(f'[p2p] received unwanted action request ')
 
@@ -177,7 +179,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         logger.info(f"[p2p] sending {len(blocks)} blocks to {peer}")
 
         message = Message(Actions.BlocksSyncGet, blocks, Params.PORT_CURRENT)
-        self.request.sendall(Utils.encode_socket_data(message))
+        #self.request.sendall(Utils.encode_socket_data(message))
 
         if self.request.sendall(Utils.encode_socket_data(message)) is None:
             if peer not in self.peers:
@@ -190,6 +192,26 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 logger.info(f'[p2p] add peer {peer} into peer list')
                 Peer.save_peers(self.peers)
                 self.sendPeerExtend()
+
+    def handleTopBlockReq(self, peer: Peer):
+        block = self.active_chain.chain[-1]
+
+        logger.info(f"[p2p] sending top block to {peer}")
+
+        message = Message(Actions.BlockRev, block, Params.PORT_CURRENT)
+
+        if self.request.sendall(Utils.encode_socket_data(message)) is None:
+            if peer not in self.peers:
+                if peer== Peer('127.0.0.1', Params.PORT_CURRENT) or \
+                                peer == Peer('localhost', Params.PORT_CURRENT) or \
+                                    peer.ip == '0.0.0.0' or \
+                                    peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
+                    return
+                self.peers.append(peer)
+                logger.info(f'[p2p] add peer {peer} into peer list')
+                Peer.save_peers(self.peers)
+                self.sendPeerExtend()
+
 
     def handleBlockSyncGet(self, blocks: Iterable[Block], peer: Peer):
         logger.info(f"[p2p] receive BlockSyncGet with {len(blocks)} blocks from {peer}")

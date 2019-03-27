@@ -195,6 +195,36 @@ class EdgenceChain(object):
                         else:
                             logger.info(f'unwanted result of check block place')
 
+        def initiative_sync():
+            logger.info(f'thread for request top block periodically....')
+            while True:
+                time.sleep(Params.TIME_BETWEEN_BLOCKS_IN_SECS_TARGET*0.9)
+                try:
+                    peer = random.sample(self.peers, 1)[0]
+                    message = Message(Actions.TopBlockReq, None, Params.PORT_CURRENT)
+
+
+                    with socket.create_connection(peer(), timeout=10) as s:
+                        s.sendall(Utils.encode_socket_data(message))
+                        logger.info(f'[EdgenceChain] succeed to send TopBlockReq to {peer}')
+                        msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
+                        data = b''
+                        while msg_len > 0:
+                            tdat = s.recv(1024)
+                            data += tdat
+                            msg_len -= len(tdat)
+
+                        message = Utils.deserialize(data.decode(), self.gs) if data else None
+                        if message:
+                            logger.info(f'[EdgenceChain] received top block from peer {peer}')
+                            message = Message(Actions.BlockRev, message.data, Params.PORT_CURRENT)
+                            Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
+                            logger.info(f'[EdgenceChain] send BlockRev to itself')
+                        else:
+                            logger.info(f'[EdgenceChain] failed to resolve message from peer {peer}')
+
+                except:
+                    pass
 
 
         # single thread mode, no need for thread lock
@@ -226,6 +256,7 @@ class EdgenceChain(object):
 
 
         start_worker(workers, mine_forever)
+        start_worker(workers, initiative_sync)
         
         [w.join() for w in workers]
 
