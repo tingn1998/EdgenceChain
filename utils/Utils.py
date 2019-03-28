@@ -108,13 +108,15 @@ class Utils(object):
                 with socket.create_connection(peer(), timeout=20) as s:
                     s.sendall(cls.encode_socket_data(data))
             except Exception:
-                logger.exception(f'[utils] failed to send to {peer} data in {Params.TRIES_MAXIMUM+1-tries_left}th time')
+                logger.exception(f'[utils] failed to send to {peer} data about {data.action if hasattr(data, "action") else None} '
+                                 f'in {Params.TRIES_MAXIMUM+1-tries_left}th time')
                 tries_left -= 1
                 time.sleep(2)
                 if tries_left <= 0:
                     return False
             else:
-                logger.info(f'[utils] succeed in sending to {peer} data in {Params.TRIES_MAXIMUM+1-tries_left}th time')
+                logger.info(f'[utils] succeed in sending to {peer} data about {data.action if hasattr(data, "action") else None}'
+                            f'in {Params.TRIES_MAXIMUM+1-tries_left}th time')
                 return True
 
 
