@@ -238,10 +238,14 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
         for idx in range(len(new_blocks)-1):
             block = new_blocks[idx]
-            if MerkleNode.get_merkle_root_of_txns(block.txns).val != block.merkle_hash or \
-                    block.id != new_blocks[idx+1].prev_block_hash:
-                logger.info(f'[p2p] check of block headers is  a failure')
+            if MerkleNode.get_merkle_root_of_txns(block.txns).val != block.merkle_hash:
+                logger.info(f'[p2p] check of block headers is a failure for not wrong merkle hash given')
                 return
+            elif block.id != new_blocks[idx+1].prev_block_hash:
+                logger.info(f'[p2p] check of block headers is a failure for not consistent block hash')
+                return
+            else:
+                pass
 
 
         with self.chain_lock:
