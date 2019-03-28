@@ -147,6 +147,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
     def sendPeerExtend(self):
         peer_samples = random.sample(self.peers, min(5, len(self.peers)))
         for _peer in peer_samples:
+            if random.random() > 0.2:
+                continue
             logger.info(f"[p2p] sending {len(peer_samples)} peers to {_peer}")
             Utils.send_to_peer(Message(Actions.PeerExtend, peer_samples, Params.PORT_CURRENT), _peer)
 
