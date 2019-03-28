@@ -176,7 +176,8 @@ class Block(NamedTuple):
             spent = sum(find_utxo(i).value for i in txn.txins)
             sent = sum(o.value for o in txn.txouts)
             fee += (spent - sent)
-        logger.info(f'[ds] fees for {len(self.txns[1:])} non-coinbase transactions in this block: {fee}')
+        if len(self.txns[1:]) > 0:
+            logger.info(f'[ds] fees for {len(self.txns[1:])} non-coinbase transactions in this block: {fee}')
 
         return fee
 

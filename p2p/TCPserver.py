@@ -412,7 +412,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 #logger.info(f'after check subsid_fees, and give out a logger.exception')
                 return False
             else:
-                logger.info(f'[p2p] subsidy and fees of this block are right.')
+                #logger.info(f'[p2p] subsidy and fees of this block are right.')
+                pass
             connect_block_success = active_chain.connect_block(block, active_chain, \
                                                     side_branches, \
                                     mempool, utxo_set, mine_interrupt, peers)

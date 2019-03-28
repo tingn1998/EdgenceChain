@@ -100,7 +100,8 @@ class EdgenceChain(object):
 
             if not block.txns[1:]:
                 block = self.mempool.select_from_mempool(block, self.utxo_set)
-                logger.info(f'{len(block.txns[1:])} transactions selected from mempool to construct this block')
+                if len(block.txns[1:]) > 0:
+                    logger.info(f'{len(block.txns[1:])} transactions selected from mempool to construct this block')
 
             fees = block.calculate_fees(self.utxo_set)
             my_address = self.wallet()[2]
