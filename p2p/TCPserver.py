@@ -242,7 +242,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 logger.info(f'[p2p] check of block headers is a failure for not wrong merkle hash given')
                 return
             elif block.id != new_blocks[idx+1].prev_block_hash:
-                logger.info(f'[p2p] check of block headers is a failure for not consistent block hash')
+                logger.info(f'[p2p] check of block headers is a failure for not consistent block hash: block.id is {block.id}, and prev_block hash is {new_blocks[idx+1].prev_block_hash}')
                 return
             else:
                 pass
