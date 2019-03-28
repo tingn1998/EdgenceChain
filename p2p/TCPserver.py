@@ -113,6 +113,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
         if action == Actions.BlocksSyncReq:
             self.handleBlockSyncReq(message.data, peer)
         elif action == Actions.BlocksSyncGet:
+            self.request.shutdown(socket.SHUT_RDWR)
+            self.request.close()
             self.handleBlockSyncGet(message.data, peer)
         elif action == Actions.TxStatusReq:
             self.handleTxStatusReq(message.data, peer)
@@ -121,10 +123,16 @@ class TCPHandler(socketserver.BaseRequestHandler):
         elif action == Actions.Balance4Addr:
             self.handleBalance4Addr(message.data, peer)
         elif action == Actions.TxRev:
+            self.request.shutdown(socket.SHUT_RDWR)
+            self.request.close()
             self.handleTxRev(message.data, peer)
         elif action == Actions.BlockRev:
+            self.request.shutdown(socket.SHUT_RDWR)
+            self.request.close()
             self.handleBlockRev(message.data, peer)
         elif action == Actions.PeerExtend:
+            self.request.shutdown(socket.SHUT_RDWR)
+            self.request.close()
             self.handlePeerExtendGet(message.data, peer)
         elif action == Actions.TopBlocksSyncReq:
             self.handleTopBlockSyncReq(message.data, peer)
