@@ -147,7 +147,7 @@ class EdgenceChain(object):
                         Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
                         logger.info(f'[EdgeHand] send BlocksSyncGet to itself')
                     else:
-                        logger.info(f'[EdgeHand] failed to resolve message from peer {peer}')
+                        logger.info(f'[EdgeHand] recv nothing from peer {peer}')
                 except:
                     logger.info(f'remove dead peer {peer}')
                     self.peers.remove(peer)
@@ -221,7 +221,7 @@ class EdgenceChain(object):
                         Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
                         logger.info(f'[EdgenceChain] send BlockRev to itself')
                     else:
-                        logger.info(f'[EdgenceChain] failed to resolve message from peer {peer}')
+                        logger.info(f'[EdgenceChain] recv nothing from peer {peer}')
 
                 except:
                     pass

@@ -280,7 +280,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
             Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
             logger.info(f'[EdgeHand] send BlocksSyncGet to itself')
         else:
-            logger.info(f'[EdgeHand] failed to resolve message from peer {peer}')
+            logger.info(f'[EdgeHand] recv nothing from peer {peer}')
 
 
 
@@ -374,7 +374,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
                     logger.info(f'[EdgeHand] send BlocksSyncGet to itself')
                 else:
-                    logger.info(f'[EdgeHand] failed to resolve message from peer {peer}')
+                    logger.info(f'[EdgeHand] recv nothing from peer {peer}')
 
 
         else:
