@@ -96,6 +96,10 @@ class Utils(object):
 
     @classmethod
     def send_to_peer(cls, data, peer, itself: bool = False)->bool:
+
+        from p2p.Message import Actions
+        from p2p.Message import Message
+
         tries_left = int(Params.TRIES_MAXIMUM)
 
         if tries_left <= 0:
@@ -112,7 +116,7 @@ class Utils(object):
                     s.sendall(cls.encode_socket_data(data))
                     logger.info(f'[Utils] succeed to send data to {peer}')
             except Exception as e:
-                logger.exception(f'[utils] Error: {repr(e)}, and failed to send to {peer} data about {data.num2name(str(data.action)) if hasattr(data, "action") else None} '
+                logger.exception(f'[utils] Error: {repr(e)}, and failed to send to {peer} data about {Actions.num2name[str(data.action)] if hasattr(data, "action") else None} '
                                  f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
                 tries_left -= 1
                 time.sleep(2)
@@ -120,7 +124,7 @@ class Utils(object):
                     return False
             else:
                 if not itself:
-                    logger.info(f'[utils] succeed in sending to {peer} data about {data.num2name(str(data.action)) if hasattr(data, "action") else None}'
+                    logger.info(f'[utils] succeed in sending to {peer} data about {Actions.num2name[str(data.action)] if hasattr(data, "action") else None}'
                             f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
                 return True
 

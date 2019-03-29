@@ -5,5 +5,7 @@ message = Message(0,'22',9991)
 
 print(hasattr(message, "action"))
 
+print(Actions.num2name[str(Actions.BlockRev)])
+
 
 
