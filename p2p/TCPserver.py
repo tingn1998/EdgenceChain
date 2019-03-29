@@ -166,6 +166,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
         height = Block.locate_block(blockid, self.active_chain)[1]
         if height is None:
             logger.info(f'[p2p] cannot find blockid {blockid}, and do nothing for this BlockSyncReq from peer {peer}')
+            message = Message(Actions.BlockRev, self.active_chain.chain[-1], Params.PORT_CURRENT)
+            self.request.sendall(Utils.encode_socket_data(message))
+
             return
         else:
             logger.info(f"[p2p] receive BlockSyncReq at height {height} from peer {peer}")
