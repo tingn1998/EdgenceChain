@@ -15,26 +15,22 @@ from ds.TxIn import TxIn
 from ds.TxOut import TxOut
 from ds.BaseMemPool import BaseMemPool
 
-
-
 import binascii
 import ecdsa
 import logging
 import os
-
-
 
 logging.basicConfig(
     level=getattr(logging, os.environ.get('TC_LOG_LEVEL', 'INFO')),
     format='[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
 
+
 # Used to represent the specific output within a transaction.
 
 class Transaction(NamedTuple):
     txins: Iterable[TxIn]
     txouts: Iterable[TxOut]
-
 
     locktime: int = None
 
@@ -66,7 +62,7 @@ class Transaction(NamedTuple):
             raise TxnValidationError('Missing txouts')
         if not as_coinbase and not self.txins:
             raise TxnValidationError('MIssing txins for not coinbase transation')
-        if as_coinbase and len(self.txins)>1:
+        if as_coinbase and len(self.txins) > 1:
             raise TxnValidationError('Coinbase transaction has more than one TxIns')
         if as_coinbase and self.txins[0].to_spend is not None:
             raise TxnValidationError('Coinbase transaction should not have valid to_spend in txins')
@@ -77,41 +73,64 @@ class Transaction(NamedTuple):
         if sum(t.value for t in self.txouts) > Params.MAX_MONEY:
             raise TxnValidationError('Spend value too high')
 
-
     def validate_txn(self,
                      utxo_set: BaseUTXO_Set,
                      mempool: BaseMemPool = None,
                      as_coinbase: bool = False,
-                     siblings_in_block: Iterable[NamedTuple] = None,  #object
+                     siblings_in_block: Iterable[NamedTuple] = None,  # object
                      allow_utxo_from_mempool: bool = True,
                      ) -> bool:
         """
         Validate a single transaction. Used in various contexts, so the
         parameters facilitate different uses.
         """
+
         def validate_signature_for_spend(txin, utxo: UnspentTxOut):
+
+            # 调整构建信息部分，非常简略，约等于SIGHASH ALL
+            # 同样这里构建的输出就是交易的TxIn部分，需要与输入对应式地重写
             def build_spend_message(to_spend, pk, sequence, txouts) -> bytes:
                 """This should be ~roughly~ equivalent to SIGHASH_ALL."""
                 return Utils.sha256d(
                     Utils.serialize(to_spend) + str(sequence) +
                     binascii.hexlify(pk).decode() + Utils.serialize(txouts)).encode()
 
+            """
+            能够提供的参数有：
+            txin|.to_spend: Union[OutPoint, None]
+                |.unlock_pk: bytes
+                |.unlock_sig: bytes
+                |.sequence: int
+            utxo|value: int
+                |to_address: str
+                |txid: str
+                |txout_idx: int
+                |is_coinbase: bool
+                |height: int
+            """
+
+            # 公钥作为地址，也就是给地址加密而已
             pubkey_as_addr = Wallet.pubkey_to_address(txin.unlock_pk)
+            # 验证公钥串的内容
             verifying_key = ecdsa.VerifyingKey.from_string(
                 txin.unlock_pk, curve=ecdsa.SECP256k1)
 
+            # 验证公钥地址是否与utxo中内容相同
             if pubkey_as_addr != utxo.to_address:
                 raise TxUnlockError("Pubkey doesn't match")
 
             try:
+                # 封装输出部分内容
                 spend_msg = build_spend_message(
                     txin.to_spend, txin.unlock_pk, txin.sequence, self.txouts)
+                # 都是调用ecdsa的已有方法
                 verifying_key.verify(txin.unlock_sig, spend_msg)
             except Exception:
                 logger.exception(f'[ds] Key verification failed')
                 raise TxUnlockError("Signature doesn't match")
-            return True        
+            return True
 
+        # 获取当前高度值
         def get_current_height(chainfile=Params.CHAIN_FILE):
             if not os.path.isfile(chainfile):
                 raise ChainFileLostError('chain file not found')
@@ -123,6 +142,7 @@ class Transaction(NamedTuple):
                 return 0
             return height
 
+        # 简单验证过程
         self.validate_basics(as_coinbase=as_coinbase)
 
         available_to_spend = 0
@@ -158,7 +178,3 @@ class Transaction(NamedTuple):
             raise TxnValidationError('Spend value is more than available')
 
         return True
-
-
-
-

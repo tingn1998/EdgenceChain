@@ -4,6 +4,8 @@ import struct
 from .bytevector import ByteVector
 from . import opcodes
 
+from . import scriptUtils
+
 # two main classes
 __all__ = ['Script', 'Tokenizer']
 
@@ -78,12 +80,11 @@ Templates = [
 
 # use func to operate the stack
 def _stack_op(stack, func) -> bool:
-    '''Replaces the top N items from the stack with the items in the list
-       returned by the callable func; N is func's argument count.
+    """Replaces the top N items from the stack with the items in the list
+       returned by the callable func; N is func's argument count
 
        The result must return a list.
-
-       False is returned on error, otherwise True.'''
+    """
 
     # not enough arguments
     count = len(inspect.getfullargspec(func).args)
@@ -104,15 +105,12 @@ def _stack_op(stack, func) -> bool:
 
 # use func to do math operations on the stack
 def _math_op(stack, func, check_overflow=True) -> bool:
-    '''Replaces the top N items from the stack with the result of the callable
+    """Replaces the top N items from the stack with the result of the callable
        func; N is func's argument count.
 
        A boolean result will push either a 0 or 1 on the stack. None will push
-       nothing.
-
-       Otherwise, the result must be a ByteVector!!!
-
-       False is returned on error, otherwise True.'''
+       nothing.Otherwise, the result must be a ByteVector!!!
+    """
 
 
     # not enough arguments
@@ -145,11 +143,10 @@ def _math_op(stack, func, check_overflow=True) -> bool:
 
 # use func to do hash operations on the stack
 def _hash_op(stack, func) -> bool:
-    '''Replaces the top of the stack with the result of the callable func.
+    """Replaces the top of the stack with the result of the callable func.
 
        The result must be a ByteVector.
-
-       False is returned on error, otherwise True.'''
+    """
 
     # not enough arguments
     if len(stack) < 1:
@@ -184,13 +181,61 @@ class FlexTxn(protocol.Txn):
 
 
 class Tokenizer(object):
-    '''Tokenizes a script into tokens.
+    """
+    Tokenizes a script into tokens for the checking process of stack.
+    """
 
-           Literals can be accessed with get_value and have the opcode 0x1ff.
+    OP_LITERAL = 0x1ff
 
-           The *VERIFY opcodes are expanded into the two equivalent opcodes.'''
+    _Verify = {
+        opcodes.OP_EQUALVERIFY: opcodes.OP_EQUAL,
+        opcodes.OP_NUMEQUALVERIFY: opcodes.OP_NUMEQUAL,
+        opcodes.OP_CHECKSIGVERIFY: opcodes.OP_CHECKSIG,
+        opcodes.OP_CHECKMULTISIGVERIFY: opcodes.OP_CHECKMULTISIG,
+    }
 
-    @TODO
+    ### Init part!!
+
+    # it's checked by final check-function
+    def get_subscript(self, start_index=0, filter=None) -> str:
+        """The function is used to check the script value with the filter (opcode,bytes,value)"""
+
+        output = ''
+        for (opcode, bytes, value) in self._tokens[start_index:]:
+            # check the value
+            if filter and not filter(opcode, bytes, value):
+                continue
+            output += bytes
+        # return the checked script
+        return output
+
+    # Given a template, return True if this script matches.
+    def match_template(self, template) -> bool:
+
+        if not template[0](self):
+            return False
+
+        # ((opcode, bytes, value), template_target)
+        for ((o, b, v), t) in zip(self._tokens, template[1:]):
+
+            # callable, check the value
+            if callable(t):
+                if not t(o, b, v):
+                    return False
+
+            # otherwise, compare opcode
+            elif t != o:
+                return False
+
+        return True
+
+    # Get the original bytes used for the opcode and value
+    def get_bytes(self, index) -> bytes:
+        return self._tokens[index][1]
+
+    # Get the value for a literal.
+    def get_value(self, index) -> str:
+        return self._tokens[index][2]
 
 
 # —————————————————————— main stack Process————————————————————
@@ -209,6 +254,8 @@ class Script(object):
         signature_length = len(tokens)
         # (previous_output.pk_script）
         tokens.append(pk_script)
+
+        # counting the length of tokens which contains two kind of scripts
         last_codeseparator = signature_length
 
 
@@ -225,7 +272,7 @@ class Script(object):
         altstack = []
 
         # ！！！do stack-unlock process！！！
-        for pc in range(0, len(tokens)):  # 计数过程
+        for pc in range(0, len(tokens)):  # counting process
 
             # get the opcodes
             opcode = tokens[pc]
@@ -238,7 +285,7 @@ class Script(object):
             elif opcode == opcodes.OP_NOTIF:  # process if the stack top value isn't 0
                 ifstack.append(stack.pop().value == 0)
 
-            elif opcode == opcodes.OP_ELSE:  # 上面俩没执行则执行这个
+            elif opcode == opcodes.OP_ELSE:  # process if OP_IF and OP_NOTIF flag don't work
                 if len(ifstack) == 0: return False
                 ifstack.push(not ifstack.pop())
 
@@ -445,23 +492,23 @@ class Script(object):
             ### Crypto Operations
 
             elif opcode == opcodes.OP_RIPEMD160:
-                if not _hash_op(stack, util.ripemd160):
+                if not _hash_op(stack, scriptUtils.ripemd160):
                     return False
 
             elif opcode == opcodes.OP_SHA1:
-                if not _hash_op(stack, util.sha1):
+                if not _hash_op(stack, scriptUtils.sha1):
                     return False
 
             elif opcode == opcodes.OP_SHA256:
-                if not _hash_op(stack, util.sha256):
+                if not _hash_op(stack, scriptUtils.sha256):
                     return False
 
             elif opcode == opcodes.OP_HASH160:
-                if not _hash_op(stack, util.hash160):
+                if not _hash_op(stack, scriptUtils.hash160):
                     return False
 
             elif opcode == opcodes.OP_HASH256:
-                if not _hash_op(stack, util.sha256d):
+                if not _hash_op(stack, scriptUtils.sha256d):
                     return False
 
             elif opcode == opcodes.OP_CODESEPARATOR:
@@ -469,7 +516,9 @@ class Script(object):
                     last_codeseparator = pc
 
             # see: https://en.bitcoin.it/wiki/OP_CHECKSIG
-            # !!it's important for P2PKH
+
+            ### !!Begin to check for P2PKH!!
+
             elif opcode == opcodes.OP_CHECKSIG:  # check and remove thing from the stack
                 if len(stack) < 2: return False
 
@@ -490,11 +539,14 @@ class Script(object):
                 valid = check_signature(signature, public_key, hash_type, subscript, transaction, input_index)
 
                 if valid:
-                    stack.append(One)
+                    stack.append(One) # the verify process is successful
                 else:
                     stack.append(Zero)
 
             # check for the Muti-process
+
+            # We don't use this part due to our plan
+            # and it's easy to add this part.
             elif opcode == opcodes.OP_CHECKMULTISIG:
                 if len(stack) < 2: return False
 

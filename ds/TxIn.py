@@ -2,6 +2,7 @@ from typing import (NamedTuple, Union)
 
 from ds.OutPoint import OutPoint
 
+
 class TxIn(NamedTuple):
     """Inputs to a Transaction."""
     # A reference to the output we're spending. This is None for coinbase
