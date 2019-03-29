@@ -25,6 +25,19 @@ class Actions:
     PeerExtend = 10
     TopBlocksSyncReq = 11
     TopBlockReq  = 12
+    num2name = {'0':'BlocksSyncReq',
+                   '1':'BlocksSyncGet',
+                   '2':'TxStatusReq',
+                   '3':'UTXO4Addr',
+                   '4':'Balance4Addr',
+                   '5':'TxRev',
+                   '6':'BlockRev',
+                   '7':'TxStatusRev',
+                   '8':'UTXO4AddrRev',
+                   '9':'Balance4AddrRev',
+                   '10':'PeerExtend',
+                   '11':'TopBlocksSyncReq',
+                   '12':'TopBlockReq'}
 
 
 class Message(NamedTuple):
