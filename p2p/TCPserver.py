@@ -147,7 +147,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
     def sendPeerExtend(self):
         peer_samples = random.sample(self.peers, min(5, len(self.peers)))
         for _peer in peer_samples:
-            if random.random() > 0.2:
+            if random.random() < 0.2:
                 continue
             logger.info(f"[p2p] sending {len(peer_samples)} peers to {_peer}")
             Utils.send_to_peer(Message(Actions.PeerExtend, peer_samples, Params.PORT_CURRENT), _peer)
@@ -279,8 +279,22 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
         message = Message(Actions.BlocksSyncReq, new_tip_id, Params.PORT_CURRENT)
 
+        if peer not in self.peers:
+            if peer== Peer('127.0.0.1', Params.PORT_CURRENT) or \
+                            peer == Peer('localhost', Params.PORT_CURRENT) or \
+                                peer.ip == '0.0.0.0' or \
+                                peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
+                return
+            self.peers.append(peer)
+            logger.info(f'[p2p] add peer {peer} into peer list')
+            Peer.save_peers(self.peers)
+            self.sendPeerExtend()
+
         if peer == Peer('127.0.0.1', Params.PORT_CURRENT):
-            peer = random.sample(self.peers,1)[0]
+            if len(self.peers) > 0:
+                peer = random.sample(self.peers,1)[0]
+            else:
+                return
         with socket.create_connection(peer(), timeout=25) as s:
             s.sendall(Utils.encode_socket_data(message))
             logger.info(f'[p2p] succeed to send BlocksSyncReq to {peer}')
