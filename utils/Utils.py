@@ -111,7 +111,8 @@ class Utils(object):
             try:
                 if not itself:
                     logger.info(f'[utils] begin to create socket connection with peer {peer}' )
-                with socket.create_connection(peer(), timeout=30) as s:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #socket.create_connection(peer(), timeout=30) as s:
+                    s.connect(peer())######
                     logger.info(f'[Utils] succeed to create socket connection with {peer}')
                     s.sendall(cls.encode_socket_data(data))
                     logger.info(f'[Utils] succeed to send data to {peer}')
@@ -123,6 +124,7 @@ class Utils(object):
                 if tries_left <= 0:
                     return False
             else:
+                s.close() #####
                 if not itself:
                     logger.info(f'[utils] succeed in sending to {peer} data about {Actions.num2name[str(data.action)] if hasattr(data, "action") else None}'
                             f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
