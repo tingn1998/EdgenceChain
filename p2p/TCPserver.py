@@ -279,6 +279,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
         message = Message(Actions.BlocksSyncReq, new_tip_id, Params.PORT_CURRENT)
 
+        if peer == Peer('127.0.0.1', Params.PORT_CURRENT):
+            peer = random.sample(self.peers,1)[0]
         with socket.create_connection(peer(), timeout=25) as s:
             s.sendall(Utils.encode_socket_data(message))
             logger.info(f'[p2p] succeed to send BlocksSyncReq to {peer}')
@@ -374,6 +376,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
             elif chain_idx == -1:
                 #case of orphan block
                 message = Message(Actions.TopBlocksSyncReq, 50, Params.PORT_CURRENT)
+                if peer == Peer('127.0.0.1', Params.PORT_CURRENT):
+                    peer = random.sample(self.peers,1)[0]
                 with socket.create_connection(peer(), timeout=25) as s:
                     s.sendall(Utils.encode_socket_data(message))
                     logger.info(f'[p2p] succeed to send TopBlocksSyncReq to {peer}')
