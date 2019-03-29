@@ -115,6 +115,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
         elif action == Actions.BlocksSyncGet:
             self.request.shutdown(socket.SHUT_RDWR)
             self.request.close()
+            if message.srpeer is not None:
+                peer = message.srpeer
             self.handleBlockSyncGet(message.data, peer)
         elif action == Actions.TxStatusReq:
             self.handleTxStatusReq(message.data, peer)
@@ -129,6 +131,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
         elif action == Actions.BlockRev:
             self.request.shutdown(socket.SHUT_RDWR)
             self.request.close()
+            if message.srpeer is not None:
+                peer = message.srpeer
             self.handleBlockRev(message.data, peer)
         elif action == Actions.PeerExtend:
             self.request.shutdown(socket.SHUT_RDWR)
@@ -280,6 +284,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
         message = Message(Actions.BlocksSyncReq, new_tip_id, Params.PORT_CURRENT)
 
+
         if peer not in self.peers:
             if peer== Peer('127.0.0.1', Params.PORT_CURRENT) or \
                             peer == Peer('localhost', Params.PORT_CURRENT) or \
@@ -309,7 +314,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         message = Utils.deserialize(data.decode(), self.gs) if data else None
         if message:
             logger.info(f'[p2p] received blocks from peer {peer}')
-            message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
+            message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT, peer)
             Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
             #logger.info(f'[p2p] send BlocksSyncGet to itself')
         else:
@@ -412,7 +417,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 message = Utils.deserialize(data.decode(), self.gs) if data else None
                 if message:
                     logger.info(f'[p2p] received blocks from peer {peer}')
-                    message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
+                    message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT, peer)
                     Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
                     #logger.info(f'[p2p] send BlocksSyncGet to itself')
                 else:

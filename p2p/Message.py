@@ -44,6 +44,7 @@ class Message(NamedTuple):
     action: int
     data: Union[str, Iterable[Block], Iterable[UnspentTxOut], int, Transaction, Block, Iterable[Peer], OutPoint, bool]
     port: Union[None, int] = None
+    srpeer: Peer = None
 
 
 
