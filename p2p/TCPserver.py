@@ -145,12 +145,13 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
     def sendPeerExtend(self):
-        peer_samples = random.sample(self.peers, min(5, len(self.peers)))
-        for _peer in peer_samples:
-            if random.random() < 0.2:
-                continue
-            logger.info(f"[p2p] sending {len(peer_samples)} peers to {_peer}")
-            Utils.send_to_peer(Message(Actions.PeerExtend, peer_samples, Params.PORT_CURRENT), _peer)
+        if len(self.peers) > 0:
+            for _peer in peer_samples:
+                if random.random() < 0.2:
+                    continue
+                peer_samples = random.sample(self.peers, min(5, len(self.peers)))
+                logger.info(f"[p2p] sending {len(peer_samples)} peers to {_peer}")
+                Utils.send_to_peer(Message(Actions.PeerExtend, peer_samples, Params.PORT_CURRENT), _peer)
 
     def handleBlockSyncReq(self, blockid: str, peer: Peer):
 
@@ -363,9 +364,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
             logger.info(f"[p2p] received txn {txn.id} from peer {peer}")
             with self.chain_lock:
                 if self.mempool.add_txn_to_mempool(txn, self.utxo_set):
-                    for _peer in self.peers:
-                        if _peer != peer:
-                            Utils.send_to_peer(Message(Actions.TxRev, txn, Params.PORT_CURRENT), _peer)
+                    if len(self.peers) > 0:
+                        for _peer in random.sample(self.peers, min(len(self.peers),5)):
+                            if _peer != peer:
+                                Utils.send_to_peer(Message(Actions.TxRev, txn, Params.PORT_CURRENT), _peer)
                 else:
                     logger.info(f"[p2p] received txn {txn.id}, but validate failed.")
         else:
@@ -385,7 +387,12 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                                        self.mempool, self.utxo_set, self.mine_interrupt, self.peers):
                         return
                     self.sendPeerExtend()
-            if chain_idx is None:
+            if chain_idx is not None and chain_idx >= 0:
+                if len(self.peers) > 0:
+                    for _peer in random.sample(self.peers, min(len(self.peers),5)):
+                        if _peer != peer:
+                            Utils.send_to_peer(Message(Actions.BlockRev, block, Params.PORT_CURRENT), _peer)
+            elif chain_idx is None:
                 logger.info(f'[p2p] already seen block {block.id}, and do nothing')
             elif chain_idx == -1:
                 #case of orphan block
