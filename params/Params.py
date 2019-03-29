@@ -62,14 +62,14 @@ class Params:
     MAXIMUM_ALLOWABLE_HEIGHT_DIFF = 60
 
     PUBLIC_IP = ''
-    PORT_CURRENT = int(9999)
+    PORT_CURRENT = int(9996)
     PEERS_FILE =  'seeds.node'
     CHAIN_FILE = 'chain.dat'
     WALLET_FILE = 'mywallet.dat'
     PEERS: Iterable[Tuple] = list([#('47.102.41.81', 9996),
-                     # ('47.111.168.213', 9996),
-                     # ('47.88.63.126', 9996),
-                     # ('161.117.84.146', 9996)
+                      #('47.111.168.213', 9996),
+                      #('47.88.63.126', 9996),
+                      #('161.117.84.146', 9996)
                      ])
 
 
