@@ -132,6 +132,7 @@ class EdgenceChain(object):
             for peer in peer_sample:
                 try:
                     with socket.create_connection(peer(), timeout=25) as s:
+                        logger.info(f'[EdgenceChain] succeed to create socket connection with {peer}')
                         s.sendall(Utils.encode_socket_data(message))
                         logger.info(f'[EdgenceChain] succeed to send BlocksSyncReq to {peer}')
                         msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
@@ -149,8 +150,8 @@ class EdgenceChain(object):
                         #logger.info(f'[EdgenceChain] send BlocksSyncGet to itself')
                     else:
                         logger.info(f'[EdgenceChain] recv nothing from peer {peer}')
-                except:
-                    logger.info(f'remove dead peer {peer}')
+                except Exception as e:
+                    logger.exception(f'Error: {repr(e)}, and remove dead peer {peer}')
                     self.peers.remove(peer)
                     Peer.save_peers(self.peers)
 

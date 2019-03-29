@@ -185,7 +185,7 @@ class Block(NamedTuple):
 
     def validate_block(self, active_chain: BaseBlockChain, utxo_set: BaseUTXO_Set, mempool: BaseMemPool = None,
                        side_branches: Iterable[BaseBlockChain] = None) -> int:
-        logger.info(f'[p2p] already in another validate_block process')
+        #logger.info(f'[p2p] already in another validate_block process')
 
         def _get_median_time_past(prev_block, prev_block_height, prev_block_chain_idx, num_last_blocks: int = 11) -> int:
 

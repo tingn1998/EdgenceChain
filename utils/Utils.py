@@ -108,9 +108,11 @@ class Utils(object):
                 if not itself:
                     logger.info(f'[utils] begin to create socket connection with peer {peer}' )
                 with socket.create_connection(peer(), timeout=30) as s:
+                    logger.info(f'[Utils] succeed to create socket connection with {peer}')
                     s.sendall(cls.encode_socket_data(data))
-            except Exception:
-                logger.exception(f'[utils] failed to send to {peer} data about {data.action if hasattr(data, "action") else None} '
+                    logger.info(f'[Utils] succeed to send data to {peer}')
+            except Exception as e:
+                logger.exception(f'[utils] Error: {repr(e)}, and failed to send to {peer} data about {data.action if hasattr(data, "action") else None} '
                                  f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
                 tries_left -= 1
                 time.sleep(2)
