@@ -145,8 +145,8 @@ class EdgenceChain(object):
                     if message:
                         logger.info(f'[EdgenceChain] received blocks from peer {peer}')
                         message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
-                        Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
-                        logger.info(f'[EdgenceChain] send BlocksSyncGet to itself')
+                        Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
+                        #logger.info(f'[EdgenceChain] send BlocksSyncGet to itself')
                     else:
                         logger.info(f'[EdgenceChain] recv nothing from peer {peer}')
                 except:
@@ -219,8 +219,8 @@ class EdgenceChain(object):
                     if message:
                         logger.info(f'[EdgenceChain] received top block from peer {peer}')
                         message = Message(Actions.BlockRev, message.data, Params.PORT_CURRENT)
-                        Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
-                        logger.info(f'[EdgenceChain] send BlockRev to itself')
+                        Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
+                        #logger.info(f'[EdgenceChain] send BlockRev to itself')
                     else:
                         logger.info(f'[EdgenceChain] recv nothing from peer {peer}')
 

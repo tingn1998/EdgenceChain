@@ -95,7 +95,7 @@ class Utils(object):
         return int_to_8bytes(len(to_send)) + to_send
 
     @classmethod
-    def send_to_peer(cls, data, peer)->bool:
+    def send_to_peer(cls, data, peer, itself: bool = False)->bool:
         tries_left = int(Params.TRIES_MAXIMUM)
 
         if tries_left <= 0:
@@ -105,7 +105,8 @@ class Utils(object):
         while tries_left > 0:
 
             try:
-                logger.info(f'[utils] begin to create socket connection with peer {peer}' )
+                if not itself:
+                    logger.info(f'[utils] begin to create socket connection with peer {peer}' )
                 with socket.create_connection(peer(), timeout=30) as s:
                     s.sendall(cls.encode_socket_data(data))
             except Exception:
@@ -116,7 +117,8 @@ class Utils(object):
                 if tries_left <= 0:
                     return False
             else:
-                logger.info(f'[utils] succeed in sending to {peer} data about {data.action if hasattr(data, "action") else None}'
+                if not itself:
+                    logger.info(f'[utils] succeed in sending to {peer} data about {data.action if hasattr(data, "action") else None}'
                             f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
                 return True
 

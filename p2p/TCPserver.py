@@ -226,7 +226,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
     def handleBlockSyncGet(self, blocks: Iterable[Block], peer: Peer):
-        logger.info(f"[p2p] receive {len(blocks)} blocks for BlockSyncGet from {peer}")
+        if peer != Peer('127.0.0.1', Params.PORT_CURRENT):
+            logger.info(f"[p2p] receive {len(blocks)} blocks for BlockSyncGet from {peer}")
         new_blocks = [block for block in blocks if not Block.locate_block(block.id, self.active_chain, self.side_branches)[0]]
         logger.info(f'[p2p] {len(new_blocks)} of {len(blocks)} blocks from {peer} is new')
 
@@ -292,8 +293,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
         if message:
             logger.info(f'[p2p] received blocks from peer {peer}')
             message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
-            Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
-            logger.info(f'[p2p] send BlocksSyncGet to itself')
+            Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
+            #logger.info(f'[p2p] send BlocksSyncGet to itself')
         else:
             logger.info(f'[p2p] recv nothing from peer {peer}')
 
@@ -358,7 +359,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
     def handleBlockRev(self, block: Block, peer: Peer):
         if isinstance(block, Block):
-            logger.info(f"[p2p] received block {block.id} from peer {peer}")
+            if peer != Peer('127.0.0.1', Params.PORT_CURRENT):
+                logger.info(f"[p2p] received block {block.id} from peer {peer}")
             with self.chain_lock:
                 chain_idx  = TCPHandler.check_block_place(block, self.active_chain, self.utxo_set, self.mempool, \
                                                           self.side_branches)
@@ -386,8 +388,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 if message:
                     logger.info(f'[p2p] received blocks from peer {peer}')
                     message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
-                    Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
-                    logger.info(f'[p2p] send BlocksSyncGet to itself')
+                    Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
+                    #logger.info(f'[p2p] send BlocksSyncGet to itself')
                 else:
                     logger.info(f'[p2p] recv nothing from peer {peer}')
 
