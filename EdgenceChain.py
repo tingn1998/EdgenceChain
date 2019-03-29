@@ -131,7 +131,8 @@ class EdgenceChain(object):
             message = Message(Actions.BlocksSyncReq, self.active_chain.chain[-1].id, Params.PORT_CURRENT)
             for peer in peer_sample:
                 try:
-                    with socket.create_connection(peer(), timeout=25) as s:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #socket.create_connection(peer(), timeout=25) as s:
+                        s.connect(peer())
                         logger.info(f'[EdgenceChain] succeed to create socket connection with {peer}')
                         s.sendall(Utils.encode_socket_data(message))
                         logger.info(f'[EdgenceChain] succeed to send BlocksSyncReq to {peer}')
@@ -142,6 +143,7 @@ class EdgenceChain(object):
                             data += tdat
                             msg_len -= len(tdat)
 
+                    s.close()
                     message = Utils.deserialize(data.decode(), self.gs) if data else None
                     if message:
                         logger.info(f'[EdgenceChain] received blocks from peer {peer}')
@@ -206,7 +208,8 @@ class EdgenceChain(object):
                     message = Message(Actions.TopBlockReq, None, Params.PORT_CURRENT)
 
 
-                    with socket.create_connection(peer(), timeout=25) as s:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #socket.create_connection(peer(), timeout=25) as s:
+                        s.connect(peer())
                         s.sendall(Utils.encode_socket_data(message))
                         logger.info(f'[EdgenceChain] succeed to send TopBlockReq to {peer}')
                         msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
@@ -215,7 +218,7 @@ class EdgenceChain(object):
                             tdat = s.recv(1024)
                             data += tdat
                             msg_len -= len(tdat)
-
+                    s.close()
                     message = Utils.deserialize(data.decode(), self.gs) if data else None
                     if message:
                         logger.info(f'[EdgenceChain] received top block from peer {peer}')

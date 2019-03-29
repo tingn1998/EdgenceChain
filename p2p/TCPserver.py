@@ -304,7 +304,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 peer = random.sample(self.peers,1)[0]
             else:
                 return
-        with socket.create_connection(peer(), timeout=25) as s:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #socket.create_connection(peer(), timeout=25) as s:
+            s.connect(peer())
             s.sendall(Utils.encode_socket_data(message))
             logger.info(f'[p2p] succeed to send BlocksSyncReq to {peer}')
             msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
@@ -313,7 +314,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 tdat = s.recv(1024)
                 data += tdat
                 msg_len -= len(tdat)
-
+        s.close()
         message = Utils.deserialize(data.decode(), self.gs) if data else None
         if message:
             logger.info(f'[p2p] received blocks from peer {peer}')
@@ -407,7 +408,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 message = Message(Actions.TopBlocksSyncReq, 50, Params.PORT_CURRENT)
                 if peer == Peer('127.0.0.1', Params.PORT_CURRENT):
                     peer = random.sample(self.peers,1)[0]
-                with socket.create_connection(peer(), timeout=25) as s:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:#socket.create_connection(peer(), timeout=25) as s:
+                    s.connect(peer())
                     s.sendall(Utils.encode_socket_data(message))
                     logger.info(f'[p2p] succeed to send TopBlocksSyncReq to {peer}')
                     msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
@@ -416,7 +418,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         tdat = s.recv(1024)
                         data += tdat
                         msg_len -= len(tdat)
-
+                s.close()
                 message = Utils.deserialize(data.decode(), self.gs) if data else None
                 if message:
                     logger.info(f'[p2p] received blocks from peer {peer}')
