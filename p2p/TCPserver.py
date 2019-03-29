@@ -146,7 +146,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
     def sendPeerExtend(self):
         if len(self.peers) > 0:
-            for _peer in peer_samples:
+            for _peer in self.peers:
                 if random.random() < 0.2:
                     continue
                 peer_samples = random.sample(self.peers, min(5, len(self.peers)))
