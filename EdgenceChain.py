@@ -133,7 +133,7 @@ class EdgenceChain(object):
                 try:
                     with socket.create_connection(peer(), timeout=25) as s:
                         s.sendall(Utils.encode_socket_data(message))
-                        logger.info(f'[EdgeHand] succeed to send BlocksSyncReq to {peer}')
+                        logger.info(f'[EdgenceChain] succeed to send BlocksSyncReq to {peer}')
                         msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
                         data = b''
                         while msg_len > 0:
@@ -143,12 +143,12 @@ class EdgenceChain(object):
 
                     message = Utils.deserialize(data.decode(), self.gs) if data else None
                     if message:
-                        logger.info(f'[EdgeHand] received blocks from peer {peer}')
+                        logger.info(f'[EdgenceChain] received blocks from peer {peer}')
                         message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
                         Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
-                        logger.info(f'[EdgeHand] send BlocksSyncGet to itself')
+                        logger.info(f'[EdgenceChain] send BlocksSyncGet to itself')
                     else:
-                        logger.info(f'[EdgeHand] recv nothing from peer {peer}')
+                        logger.info(f'[EdgenceChain] recv nothing from peer {peer}')
                 except:
                     logger.info(f'remove dead peer {peer}')
                     self.peers.remove(peer)

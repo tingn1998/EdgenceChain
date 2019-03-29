@@ -184,13 +184,12 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
     def handleTopBlockSyncReq(self, topN: int, peer: Peer):
         #with self.chain_lock:
-        logger.info(f"[p2p] receive TopBlockSyncReq with length {topN} from peer {peer}")
+        logger.info(f"[p2p] to handle TopBlockSyncReq with length {topN} from peer {peer}")
         blocks = self.active_chain.chain[-topN:]
-
-        logger.info(f"[p2p] sending {len(blocks)} blocks to {peer}")
 
         message = Message(Actions.BlocksSyncGet, blocks, Params.PORT_CURRENT)
         ret = self.request.sendall(Utils.encode_socket_data(message))
+        logger.info(f"[p2p] sent {len(blocks)} blocks in handleTopBlockSyncReq to {peer}")
 
         if ret is None:
             if peer not in self.peers:
@@ -205,13 +204,15 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 self.sendPeerExtend()
 
     def handleTopBlockReq(self, peer: Peer):
+        logger.info(f"[p2p] to handle TopBlokReq from peer {peer}")
         block = self.active_chain.chain[-1]
 
-        logger.info(f"[p2p] sending top block to {peer}")
-
         message = Message(Actions.BlockRev, block, Params.PORT_CURRENT)
+        ret = self.request.sendall(Utils.encode_socket_data(message))
+        logger.info(f"[p2p] sent top block in handleTopBlockReq to {peer}")
 
-        if self.request.sendall(Utils.encode_socket_data(message)) is None:
+        if ret is None:
+        #if self.request.sendall(Utils.encode_socket_data(message)) is None:
             if peer not in self.peers:
                 if peer== Peer('127.0.0.1', Params.PORT_CURRENT) or \
                                 peer == Peer('localhost', Params.PORT_CURRENT) or \
@@ -225,7 +226,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
     def handleBlockSyncGet(self, blocks: Iterable[Block], peer: Peer):
-        logger.info(f"[p2p] receive BlockSyncGet with {len(blocks)} blocks from {peer}")
+        logger.info(f"[p2p] receive {len(blocks)} blocks for BlockSyncGet from {peer}")
         new_blocks = [block for block in blocks if not Block.locate_block(block.id, self.active_chain, self.side_branches)[0]]
         logger.info(f'[p2p] {len(new_blocks)} of {len(blocks)} blocks from {peer} is new')
 
@@ -279,7 +280,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
         with socket.create_connection(peer(), timeout=25) as s:
             s.sendall(Utils.encode_socket_data(message))
-            logger.info(f'[EdgeHand] succeed to send BlocksSyncReq to {peer}')
+            logger.info(f'[p2p] succeed to send BlocksSyncReq to {peer}')
             msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
             data = b''
             while msg_len > 0:
@@ -289,12 +290,12 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
         message = Utils.deserialize(data.decode(), self.gs) if data else None
         if message:
-            logger.info(f'[EdgeHand] received blocks from peer {peer}')
+            logger.info(f'[p2p] received blocks from peer {peer}')
             message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
             Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
-            logger.info(f'[EdgeHand] send BlocksSyncGet to itself')
+            logger.info(f'[p2p] send BlocksSyncGet to itself')
         else:
-            logger.info(f'[EdgeHand] recv nothing from peer {peer}')
+            logger.info(f'[p2p] recv nothing from peer {peer}')
 
 
 
@@ -349,7 +350,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         if _peer != peer:
                             Utils.send_to_peer(Message(Actions.TxRev, txn, Params.PORT_CURRENT), _peer)
                 else:
-                    logger.info(f"[p2p] received txn {txn.id} validate failed.")
+                    logger.info(f"[p2p] received txn {txn.id}, but validate failed.")
         else:
             logger.info(f'[p2p] {txn} is not a Transaction object in handleTxRev')
             return
@@ -373,7 +374,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 message = Message(Actions.TopBlocksSyncReq, 50, Params.PORT_CURRENT)
                 with socket.create_connection(peer(), timeout=25) as s:
                     s.sendall(Utils.encode_socket_data(message))
-                    logger.info(f'[EdgeHand] succeed to send TopBlocksSyncReq to {peer}')
+                    logger.info(f'[p2p] succeed to send TopBlocksSyncReq to {peer}')
                     msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
                     data = b''
                     while msg_len > 0:
@@ -383,12 +384,12 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
                 message = Utils.deserialize(data.decode(), self.gs) if data else None
                 if message:
-                    logger.info(f'[EdgeHand] received blocks from peer {peer}')
+                    logger.info(f'[p2p] received blocks from peer {peer}')
                     message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT)
                     Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT))
-                    logger.info(f'[EdgeHand] send BlocksSyncGet to itself')
+                    logger.info(f'[p2p] send BlocksSyncGet to itself')
                 else:
-                    logger.info(f'[EdgeHand] recv nothing from peer {peer}')
+                    logger.info(f'[p2p] recv nothing from peer {peer}')
 
 
         else:
