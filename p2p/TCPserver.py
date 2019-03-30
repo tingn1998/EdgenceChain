@@ -95,7 +95,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
         if not isinstance(message, Message):
-            logger.info(f'[p2p] Not a Message from peer {self.request.getpeername()[0]}')
+            self.request.shutdown(socket.SHUT_RDWR)
+            self.request.close()
+            logger.info(f'[p2p] not a valid Message from peer {self.request.getpeername()[0]}')
             return
         else:
             peer = Peer(str(self.request.getpeername()[0]), int(message.port))
@@ -143,7 +145,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
         elif action == Actions.TopBlockReq:
             self.handleTopBlockReq(peer)
         else:
-            logger.exception(f'[p2p] received unwanted action request ')
+            self.request.shutdown(socket.SHUT_RDWR)
+            self.request.close()
+            logger.info(f'[p2p] received unwanted action request ')
 
 
 
