@@ -169,6 +169,30 @@ class Utils(object):
                     logger.info(f'[utils] succeed in sending to {peer} data about {Actions.num2name[str(data.action)] if hasattr(data, "action") else None}'
                             f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
                 return 0
+    @classmethod
+    def is_peer_valid(cls, peer) -> bool:
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(5)
+                s.connect(peer())
+        except ConnectionRefusedError:
+            try:
+                s.close()
+            except:
+                pass
+            return False
+        except Exception:
+            try:
+                s.close()
+            except:
+                pass
+        else:
+            try:
+                s.close()
+            except:
+                pass
+            return True
+        return True
 
 
     @classmethod

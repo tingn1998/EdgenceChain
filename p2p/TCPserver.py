@@ -189,10 +189,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     peer.ip == '0.0.0.0' or \
                     peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT)):
 
-            self.peers.append(peer)
-            logger.info(f'[p2p] add peer {peer} into peer list')
-            Peer.save_peers(self.peers)
-            self.sendPeerExtend()
+            if Utils.is_peer_valid(peer):
+                self.peers.append(peer)
+                logger.info(f'[p2p] add peer {peer} into peer list')
+                Peer.save_peers(self.peers)
+                self.sendPeerExtend()
 
 
     def handleTopBlockSyncReq(self, topN: int, peer: Peer):
@@ -211,10 +212,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                     peer.ip == '0.0.0.0' or \
                                     peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
                     return
-                self.peers.append(peer)
-                logger.info(f'[p2p] add peer {peer} into peer list')
-                Peer.save_peers(self.peers)
-                self.sendPeerExtend()
+                if Utils.is_peer_valid(peer):
+                    self.peers.append(peer)
+                    logger.info(f'[p2p] add peer {peer} into peer list')
+                    Peer.save_peers(self.peers)
+                    self.sendPeerExtend()
 
     def handleTopBlockReq(self, peer: Peer):
         logger.info(f"[p2p] to handle TopBlokReq from peer {peer}")
@@ -232,10 +234,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                     peer.ip == '0.0.0.0' or \
                                     peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
                     return
-                self.peers.append(peer)
-                logger.info(f'[p2p] add peer {peer} into peer list')
-                Peer.save_peers(self.peers)
-                self.sendPeerExtend()
+                if Utils.is_peer_valid(peer):
+                    self.peers.append(peer)
+                    logger.info(f'[p2p] add peer {peer} into peer list')
+                    Peer.save_peers(self.peers)
+                    self.sendPeerExtend()
 
 
     def handleBlockSyncGet(self, blocks: Iterable[Block], peer: Peer):
@@ -299,10 +302,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                 peer.ip == '0.0.0.0' or \
                                 peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
                 return
-            self.peers.append(peer)
-            logger.info(f'[p2p] add peer {peer} into peer list')
-            Peer.save_peers(self.peers)
-            self.sendPeerExtend()
+            if Utils.is_peer_valid(peer):
+                self.peers.append(peer)
+                logger.info(f'[p2p] add peer {peer} into peer list')
+                Peer.save_peers(self.peers)
+                self.sendPeerExtend()
 
         if peer == Peer('127.0.0.1', Params.PORT_CURRENT):
             if len(self.peers) > 0:
@@ -571,7 +575,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 continue
             if peer_sample in self.peers:
                 continue
-            self.peers.append(peer_sample)
-            logger.info(f'[p2p] add peer {peer_sample} into peer list')
-            Peer.save_peers(self.peers)
+            if Utils.is_peer_valid(peer_sample):
+                self.peers.append(peer_sample)
+                logger.info(f'[p2p] add peer {peer_sample} into peer list')
+                Peer.save_peers(self.peers)
 
