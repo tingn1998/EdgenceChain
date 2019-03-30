@@ -140,7 +140,7 @@ class BlockChain(BaseBlockChain):
 
 
         if self.idx == Params.ACTIVE_CHAIN_IDX:
-            logger.info(f'[ds] connecting block {block.id} to chain at height {len(self.chain)+1} with index: {self.idx}')
+            logger.info(f'[ds] connecting block {block.id} to chain at height {len(self.chain)+1} with index: {self.idx}\n\t\t###############')
         else:
             logger.info(f'[ds] connecting block {block.id} to chain with index: {self.idx}')
         self.chain.append(block)
