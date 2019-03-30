@@ -154,7 +154,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 if random.random() < 0.2:
                     continue
                 peer_samples = random.sample(self.peers, min(5, len(self.peers)))
-                logger.info(f"[p2p] sending {len(peer_samples)} peers to {_peer}")
+                #logger.info(f"[p2p] sending {len(peer_samples)} peers to {_peer}")
                 Utils.send_to_peer(Message(Actions.PeerExtend, peer_samples, Params.PORT_CURRENT), _peer)
 
     def handleBlockSyncReq(self, blockid: str, peer: Peer):
