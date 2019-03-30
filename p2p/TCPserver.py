@@ -331,7 +331,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         message = Utils.deserialize(data.decode(), self.gs) if data else None
         if message:
             logger.info(f'[p2p] received blocks from peer {peer}')
-            message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT, peer)
+            message = Message(message.action, message.data, Params.PORT_CURRENT, peer)
             ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
             if ret != 0:
                 logger.info(f'[p2p] cannot send data to itself')
@@ -446,7 +446,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 message = Utils.deserialize(data.decode(), self.gs) if data else None
                 if message:
                     logger.info(f'[p2p] received blocks from peer {peer}')
-                    message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT, peer)
+                    message = Message(message.action, message.data, Params.PORT_CURRENT, peer)
                     ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
 
                     if ret != 0:
