@@ -566,7 +566,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         return chain_idx
 
     def handlePeerExtendGet(self, peer_samples: Iterable[Peer], peer: Peer):
-        logger.info(f"[p2p] received {len(peer_samples)} peers from peer {peer}")
+        #logger.info(f"[p2p] received {len(peer_samples)} peers from peer {peer}")
         peer_samples.append(peer)
         for peer_sample in peer_samples:
             if not isinstance(peer_sample, Peer):
