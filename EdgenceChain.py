@@ -160,8 +160,9 @@ class EdgenceChain(object):
                         logger.info(f'[EdgenceChain] recv nothing from peer {peer}')
                 except Exception as e:
                     logger.exception(f'Error: {repr(e)}, and remove dead peer {peer}')
-                    self.peers.remove(peer)
-                    Peer.save_peers(self.peers)
+                    if peer in self.peers:
+                        self.peers.remove(peer)
+                        Peer.save_peers(self.peers)
 
         else:
             logger.info(f'no peer nodes existed, ibd_done is set')
@@ -185,9 +186,10 @@ class EdgenceChain(object):
                     for _peer in self.peers:
                         ret = Utils.send_to_peer(Message(Actions.BlockRev, block, Params.PORT_CURRENT), _peer)
                         if ret == 1:
-                            self.peers.remove(_peer)
-                            Peer.save_peers(self.peers)
-                            logger.info(f'remove dead peer {_peer}')
+                            if _peer in self.peers:
+                                self.peers.remove(_peer)
+                                Peer.save_peers(self.peers)
+                                logger.info(f'remove dead peer {_peer}')
 
                     with self.chain_lock:
                         chain_idx  = TCPHandler.check_block_place(block, self.active_chain, self.utxo_set, \

@@ -157,9 +157,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 #logger.info(f"[p2p] sending {len(peer_samples)} peers to {_peer}")
                 ret = Utils.send_to_peer(Message(Actions.PeerExtend, peer_samples, Params.PORT_CURRENT), _peer)
                 if ret == 1:
-                    self.peers.remove(_peer)
-                    Peer.save_peers(self.peers)
-                    logger.info(f'remove dead peer {_peer}')
+                    if _peer in self.peers:
+                        self.peers.remove(_peer)
+                        Peer.save_peers(self.peers)
+                        logger.info(f'remove dead peer {_peer}')
 
     def handleBlockSyncReq(self, blockid: str, peer: Peer):
 
@@ -411,9 +412,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         if _peer != peer:
                             ret = Utils.send_to_peer(Message(Actions.BlockRev, block, Params.PORT_CURRENT), _peer)
                             if ret == 1:
-                                self.peers.remove(_peer)
-                                Peer.save_peers(self.peers)
-                                logger.info(f'[p2p] remove dead peer {_peer}')
+                                if _peer in self.peers:
+                                    self.peers.remove(_peer)
+                                    Peer.save_peers(self.peers)
+                                    logger.info(f'[p2p] remove dead peer {_peer}')
 
             elif chain_idx is None:
                 logger.info(f'[p2p] already seen block {block.id}, and do nothing')
