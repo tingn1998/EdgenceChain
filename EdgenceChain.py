@@ -147,9 +147,14 @@ class EdgenceChain(object):
                     s.close()
                     message = Utils.deserialize(data.decode(), self.gs) if data else None
                     if message:
-                        logger.info(f'[EdgenceChain] received blocks from peer {peer}')
+                        logger.info(f'[EdgenceChain] received blocks in initial_block_download from peer {peer}')
                         message = Message(Actions.BlocksSyncGet, message.data, Params.PORT_CURRENT, peer)
-                        Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
+                        ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
+
+                        if ret != 0:
+                            logger.info(f'cannot send data to itself')
+
+
                         #logger.info(f'[EdgenceChain] send BlocksSyncGet to itself')
                     else:
                         logger.info(f'[EdgenceChain] recv nothing from peer {peer}')
@@ -178,7 +183,8 @@ class EdgenceChain(object):
 
                 if block:
                     for _peer in self.peers:
-                        if Utils.send_to_peer(Message(Actions.BlockRev, block, Params.PORT_CURRENT), _peer) is False:
+                        ret = Utils.send_to_peer(Message(Actions.BlockRev, block, Params.PORT_CURRENT), _peer)
+                        if ret == 1:
                             self.peers.remove(_peer)
                             Peer.save_peers(self.peers)
                             logger.info(f'remove dead peer {_peer}')
@@ -226,8 +232,12 @@ class EdgenceChain(object):
                     if message:
                         logger.info(f'[EdgenceChain] received top block from peer {peer}')
                         message = Message(Actions.BlockRev, message.data, Params.PORT_CURRENT, peer)
-                        Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
-                        #logger.info(f'[EdgenceChain] send BlockRev to itself')
+                        ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
+                        if ret != 0:
+                            logger.info(f'cannot send data to itself')
+                        else:
+                            #logger.info(f'[EdgenceChain] send BlockRev to itself')
+                            pass
                     else:
                         logger.info(f'[EdgenceChain] recv nothing from peer {peer}')
 

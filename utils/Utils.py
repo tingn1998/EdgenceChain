@@ -95,7 +95,7 @@ class Utils(object):
         return int_to_8bytes(len(to_send)) + to_send
 
     @classmethod
-    def send_to_peer(cls, data, peer, itself: bool = False)->bool:
+    def send_to_peer(cls, data, peer, itself: bool = False) -> int:
 
         from p2p.Message import Actions
         from p2p.Message import Message
@@ -103,8 +103,8 @@ class Utils(object):
         tries_left = int(Params.TRIES_MAXIMUM)
 
         if tries_left <= 0:
-            logger.info(f'[utils] tries_left in send_to_peer must be larger than or equal to  1')
-            return False
+            logger.info(f'[utils] initial tries_left is less than 1, will not send data to other nodes')
+            return -2
 
         while tries_left > 0:
 
@@ -116,19 +116,59 @@ class Utils(object):
                     #logger.info(f'[Utils] succeed to create socket connection with {peer}')
                     s.sendall(cls.encode_socket_data(data))
                     #logger.info(f'[Utils] succeed to send data to {peer}')
-            except Exception as e:
-                logger.exception(f'[utils] Error: {repr(e)}, and failed to send to {peer} data about {Actions.num2name[str(data.action)] if hasattr(data, "action") else None} '
+            except ConnectionRefusedError as e:
+                logger.exception(f'[utils] {repr(e)}, failed to send to {peer} data about {Actions.num2name[str(data.action)] if hasattr(data, "action") else None} '
                                  f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
+                try:
+                    s.close()
+                except:
+                    pass
                 tries_left -= 1
                 time.sleep(2)
                 if tries_left <= 0:
-                    return False
+                    return 1
+            except TimeoutError as e:
+                logger.exception(f'[utils] {repr(e)}, failed to send to {peer} data about {Actions.num2name[str(data.action)] if hasattr(data, "action") else None} '
+                                 f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
+                try:
+                    s.close()
+                except:
+                    pass
+                tries_left -= 1
+                time.sleep(2)
+                if tries_left <= 0:
+                    return 2
+            except BrokenPipeError as e:
+                logger.exception(f'[utils] {repr(e)}, failed to send to {peer} data about {Actions.num2name[str(data.action)] if hasattr(data, "action") else None} '
+                                 f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
+                try:
+                    s.close()
+                except:
+                    pass
+                tries_left -= 1
+                time.sleep(2)
+                if tries_left <= 0:
+                    return 3
+            except Exception as e:
+                logger.exception(f'[utils] {repr(e)}, failed to send to {peer} data about {Actions.num2name[str(data.action)] if hasattr(data, "action") else None} '
+                                 f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
+                try:
+                    s.close()
+                except:
+                    pass
+                tries_left -= 1
+                time.sleep(2)
+                if tries_left <= 0:
+                    return -1
             else:
-                s.close() #####
+                try:
+                    s.close()
+                except:
+                    pass
                 if not itself:
                     logger.info(f'[utils] succeed in sending to {peer} data about {Actions.num2name[str(data.action)] if hasattr(data, "action") else None}'
                             f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
-                return True
+                return 0
 
 
     @classmethod
