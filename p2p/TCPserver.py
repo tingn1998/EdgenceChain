@@ -248,7 +248,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
     def handleBlockSyncGet(self, blocks: Iterable[Block], peer: Peer):
         if peer != Peer('127.0.0.1', Params.PORT_CURRENT):
             logger.info(f"[p2p] receive {len(blocks)} blocks for BlockSyncGet from {peer}")
-        new_blocks = [block for block in blocks if isinstance(block, Block) and not Block.locate_block(block.id, self.active_chain, self.side_branches)[0]]
+        new_blocks = [block for block in blocks if not Block.locate_block(block.id, self.active_chain, self.side_branches)[0]]
         logger.info(f'[p2p] {len(new_blocks)} of {len(blocks)} blocks from {peer} is new')
 
         if not new_blocks:
