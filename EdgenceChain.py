@@ -132,6 +132,7 @@ class EdgenceChain(object):
             for peer in peer_sample:
                 try:
                     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #socket.create_connection(peer(), timeout=25) as s:
+                        s.settimeout(20)
                         logger.info(f'[EdgenceChain] begin to connect to {peer}')
                         s.connect(peer())
                         logger.info(f'[EdgenceChain] succeed to create socket connection with {peer}, and begin to send data ...')
