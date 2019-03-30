@@ -243,7 +243,18 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     logger.info(f'[p2p] add peer {peer} into peer list')
                     Peer.save_peers(self.peers)
                     self.sendPeerExtend()
-
+    @classmethod
+    def check_blocks_headers(cls, new_blocks: Iterable[Block]) -> bool:
+        for idx in range(len(new_blocks)-1):
+            block = new_blocks[idx]
+            if MerkleNode.get_merkle_root_of_txns(block.txns).val != block.merkle_hash:
+                logger.info(f'[p2p] check of block headers is a failure for not wrong merkle hash given')
+                return False
+            elif block.id != new_blocks[idx+1].prev_block_hash:
+                logger.info(f'[p2p] check of block headers is a failure for not consistent block hash: block.id is {block.id}, and prev_block hash is {new_blocks[idx+1].prev_block_hash}')
+                return False
+            else:
+                return True
 
     def handleBlockSyncGet(self, blocks: Iterable[Block], peer: Peer):
         if peer != Peer('127.0.0.1', Params.PORT_CURRENT):
@@ -258,16 +269,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
         else:
             self.ibd_done.clear()
 
-        for idx in range(len(new_blocks)-1):
-            block = new_blocks[idx]
-            if MerkleNode.get_merkle_root_of_txns(block.txns).val != block.merkle_hash:
-                logger.info(f'[p2p] check of block headers is a failure for not wrong merkle hash given')
-                return
-            elif block.id != new_blocks[idx+1].prev_block_hash:
-                logger.info(f'[p2p] check of block headers is a failure for not consistent block hash: block.id is {block.id}, and prev_block hash is {new_blocks[idx+1].prev_block_hash}')
-                return
-            else:
-                pass
+        if not TCPHandler.check_blocks_headers(new_blocks):
+            return
 
 
         with self.chain_lock:
