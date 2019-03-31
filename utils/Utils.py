@@ -113,7 +113,7 @@ class Utils(object):
                     #logger.info(f'[utils] begin to create socket connection with peer {peer}' )
                     pass
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #socket.create_connection(peer(), timeout=30) as s:
-                    s.connect(peer())######
+                    s.connect(peer())
                     #logger.info(f'[Utils] succeed to create socket connection with {peer}')
                     s.sendall(cls.encode_socket_data(data))
                     #logger.info(f'[Utils] succeed to send data to {peer}')

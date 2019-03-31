@@ -275,8 +275,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
         with self.chain_lock:
-            chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
-            logger.info(f'####### into chain_lock: {chain_use_id} of handleBlockSyncGet')
+            #chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
+            #logger.info(f'####### into chain_lock: {chain_use_id} of handleBlockSyncGet')
 
             chain_idx  = TCPHandler.check_block_place(new_blocks[0], self.active_chain, self.utxo_set, \
                                                           self.mempool, self.side_branches)
@@ -293,7 +293,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 if chain_idx is not None and chain_idx >= 0:
                     if not TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, self.side_branches, \
                                                     self.mempool, self.utxo_set, self.mine_interrupt, self.peers):
-                        logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockSyncGet')
+                        #logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockSyncGet')
                         return
                 elif chain_idx is not None and chain_idx <= -1:
                     logger.info(f'[p2p] orphan or wrong block {block.id}')
@@ -302,7 +302,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     logger.info(f'[p2p] do nothing for block {block.id}')
 
             new_tip_id = self.active_chain.chain[-1].id
-            logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockSyncGet')
+            #logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockSyncGet')
 
         logger.info(f'[p2p] current chain height {self.active_chain.height}, and continue initial block download ... ')
 
@@ -399,10 +399,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
         if isinstance(txn, Transaction):
             logger.info(f"[p2p] received txn {txn.id} from peer {peer}")
             with self.chain_lock:
-                chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
-                logger.info(f'####### into chain_lock: {chain_use_id} of handleTxRev')
+                #chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
+                #logger.info(f'####### into chain_lock: {chain_use_id} of handleTxRev')
                 ret = self.mempool.add_txn_to_mempool(txn, self.utxo_set)
-                logger.info(f'####### out of chain_lock: {chain_use_id} of handleTxRev')
+                #logger.info(f'####### out of chain_lock: {chain_use_id} of handleTxRev')
             if ret:
                 if len(self.peers) > 0:
                     for _peer in random.sample(self.peers, min(len(self.peers),5)):
@@ -421,8 +421,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
             if peer != Peer('127.0.0.1', Params.PORT_CURRENT):
                 logger.info(f"[p2p] received block {block.id} from peer {peer}")
             with self.chain_lock:
-                chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
-                logger.info(f'####### into chain_lock: {chain_use_id} of handleBlockRev')
+                #chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
+                #logger.info(f'####### into chain_lock: {chain_use_id} of handleBlockRev')
 
 
                 chain_idx  = TCPHandler.check_block_place(block, self.active_chain, self.utxo_set, self.mempool, \
@@ -430,10 +430,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 if chain_idx is not None and chain_idx >= 0:
                     if not TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, self.side_branches, \
                                                        self.mempool, self.utxo_set, self.mine_interrupt, self.peers):
-                        logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockRev')
+                        #logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockRev')
                         return
 
-                logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockRev')
+                #logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockRev')
 
             if chain_idx is not None and chain_idx >= 0:
                 if len(self.peers) > 0:

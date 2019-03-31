@@ -140,9 +140,9 @@ class BlockChain(BaseBlockChain):
 
 
         if self.idx == Params.ACTIVE_CHAIN_IDX:
-            logger.info(f'[ds] connecting block {block.id} to chain at height {len(self.chain)+1} with index: {self.idx}\n\t\t###############')
+            logger.info(f'[ds] ##### connecting block at height #{len(self.chain)+1} chain with index: {self.idx}: {block.id} ')
         else:
-            logger.info(f'[ds] connecting block {block.id} to chain with index: {self.idx}')
+            logger.info(f'[ds] ## connecting block to chain with index: {self.idx}: {block.id} ')
         self.chain.append(block)
         # If we added to the active chain, perform upkeep on utxo_set and mempool.
         if self.idx == Params.ACTIVE_CHAIN_IDX:
