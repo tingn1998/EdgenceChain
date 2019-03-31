@@ -292,12 +292,12 @@ class TCPHandler(socketserver.BaseRequestHandler):
         else:
             logger.info(f'[p2p] {block} is not a Block')
 
-    @classmethod
-    def printBlockchainIDs(cls, chain: BlockChain, inv: str = 'ID sequence of blockchain '):
-        new_branch_id = ''
-        for block in chain.chain:
-            new_branch_id += block.id[-10:]+' ,'
-        logger.info(f'{inv}: {new_branch_id}')
+    #@classmethod
+    #def printBlockchainIDs(cls, chain: BlockChain, inv: str = 'ID sequence of blockchain '):
+    #    new_branch_id = ''
+    #    for block in chain.chain:
+    #        new_branch_id += block.id[-10:]+' ,'
+    #    logger.info(f'{inv}: {new_branch_id}')
 
     @classmethod
     def do_connect_block_and_after(cls, block: Block, chain_idx, active_chain: BlockChain, side_branches: Iterable[BlockChain], \
@@ -320,7 +320,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                     mempool, utxo_set, mine_interrupt, peers)
 
         if connect_block_success is not False:
-            if len(active_chain.chain) % 1 == 0 or len(active_chain.chain) <= 5:
+            if len(active_chain.chain) % Params.SAVE_PER_SIZE == 0 or len(active_chain.chain) <= 5:
                 Persistence.save_to_disk(active_chain)
 
             if connect_block_success is not True: # -1, success and reorg
@@ -329,7 +329,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 for branch_chain in side_branches:
                     logger.info(f'[p2p] number of blocks before slim side branch: {len(branch_chain.chain)}')
 
-                    TCPHandler.printBlockchainIDs(branch_chain, '[p2p] side branch removed from active chain ')
+                    #TCPHandler.printBlockchainIDs(branch_chain, '[p2p] side branch removed from active chain ')
 
                     fork_height_from_end = 0
                     for block in branch_chain.chain[::-1]:
@@ -354,6 +354,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
             side_branches_to_discard = []
             for branch_chain in side_branches:
+                if branch_chain.chain == []:
+                    side_branches_to_discard.append(branch_chain)
+                    continue
                 fork_block, fork_height, _ = Block.locate_block(branch_chain.chain[0].prev_block_hash,
                                                         active_chain)
                 branch_height_real = branch_chain.height + fork_height

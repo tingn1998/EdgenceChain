@@ -59,6 +59,7 @@ class Params:
 
     # list of peers
     CHUNK_SIZE = int(50)
+    SAVE_PER_SIZE = int(1)
     MAXIMUM_ALLOWABLE_HEIGHT_DIFF = 60
 
     PUBLIC_IP = ''
