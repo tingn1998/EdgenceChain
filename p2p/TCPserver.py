@@ -165,6 +165,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         self.peers.remove(_peer)
                         Peer.save_peers(self.peers)
                         logger.info(f'remove dead peer {_peer}')
+                        return
 
     def handleBlockSyncReq(self, blockid: str, peer: Peer):
 
