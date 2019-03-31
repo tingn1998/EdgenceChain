@@ -168,8 +168,13 @@ class EdgenceChain(object):
                 except Exception as e:
                     logger.exception(f'Error: {repr(e)}, and remove dead peer {peer}')
                     if peer in self.peers:
-                        self.peers.remove(peer)
-                        Peer.save_peers(self.peers)
+                        try:
+                            self.peers.remove(peer)
+                        except:
+                            pass
+                        else:
+                            Peer.save_peers(self.peers)
+                            logger.info(f'remove dead peer {_peer}')
 
         else:
             logger.info(f'no peer nodes existed, ibd_done is set')
@@ -194,9 +199,13 @@ class EdgenceChain(object):
                         ret = Utils.send_to_peer(Message(Actions.BlockRev, block, Params.PORT_CURRENT), _peer)
                         if ret == 1:
                             if _peer in self.peers:
-                                self.peers.remove(_peer)
-                                Peer.save_peers(self.peers)
-                                logger.info(f'remove dead peer {_peer}')
+                                try:
+                                    self.peers.remove(_peer)
+                                except:
+                                    pass
+                                else:
+                                    Peer.save_peers(self.peers)
+                                    logger.info(f'remove dead peer {_peer}')
 
                     with self.chain_lock:
                         #chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
@@ -226,8 +235,11 @@ class EdgenceChain(object):
         def initiative_sync():
             logger.info(f'thread for request top block periodically....')
             while True:
-                time.sleep(Params.TIME_BETWEEN_BLOCKS_IN_SECS_TARGET*0.9)
+
                 try:
+                    time.sleep(Params.TIME_BETWEEN_BLOCKS_IN_SECS_TARGET*0.9)
+                    self.peers = list(set(self.peers))
+
                     peer = random.sample(self.peers, 1)[0]
                     message = Message(Actions.TopBlockReq, None, Params.PORT_CURRENT)
 

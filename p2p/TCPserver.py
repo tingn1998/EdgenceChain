@@ -162,9 +162,13 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 ret = Utils.send_to_peer(Message(Actions.PeerExtend, peer_samples, Params.PORT_CURRENT), _peer)
                 if ret == 1:
                     if _peer in self.peers:
-                        self.peers.remove(_peer)
-                        Peer.save_peers(self.peers)
-                        logger.info(f'remove dead peer {_peer}')
+                        try:
+                            self.peers.remove(_peer)
+                        except:
+                            pass
+                        else:
+                            Peer.save_peers(self.peers)
+                            logger.info(f'remove dead peer {_peer}')
                         return
 
     def handleBlockSyncReq(self, blockid: str, peer: Peer):
@@ -442,9 +446,13 @@ class TCPHandler(socketserver.BaseRequestHandler):
                             ret = Utils.send_to_peer(Message(Actions.BlockRev, block, Params.PORT_CURRENT), _peer)
                             if ret == 1:
                                 if _peer in self.peers:
-                                    self.peers.remove(_peer)
-                                    Peer.save_peers(self.peers)
-                                    logger.info(f'[p2p] remove dead peer {_peer}')
+                                    try:
+                                        self.peers.remove(_peer)
+                                    except:
+                                        pass
+                                    else:
+                                        Peer.save_peers(self.peers)
+                                        logger.info(f'[p2p] remove dead peer {_peer}')
                 self.sendPeerExtend()
 
             elif chain_idx is None:
