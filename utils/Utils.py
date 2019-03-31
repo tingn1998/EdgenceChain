@@ -110,7 +110,8 @@ class Utils(object):
 
             try:
                 if not itself:
-                    logger.info(f'[utils] begin to create socket connection with peer {peer}' )
+                    #logger.info(f'[utils] begin to create socket connection with peer {peer}' )
+                    pass
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #socket.create_connection(peer(), timeout=30) as s:
                     s.connect(peer())######
                     #logger.info(f'[Utils] succeed to create socket connection with {peer}')
@@ -168,6 +169,7 @@ class Utils(object):
                 if not itself:
                     logger.info(f'[utils] succeed in sending to {peer} data about {Actions.num2name[str(data.action)] if hasattr(data, "action") else None}'
                             f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
+                    pass
                 return 0
     @classmethod
     def is_peer_valid(cls, peer) -> bool:
