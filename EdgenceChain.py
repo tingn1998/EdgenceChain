@@ -239,6 +239,7 @@ class EdgenceChain(object):
                 try:
                     time.sleep(Params.TIME_BETWEEN_BLOCKS_IN_SECS_TARGET*0.9)
                     self.peers = list(set(self.peers))
+                    Peer.save_peers(self.peers)
 
                     peer = random.sample(self.peers, 1)[0]
                     message = Message(Actions.TopBlockReq, None, Params.PORT_CURRENT)
