@@ -246,12 +246,15 @@ class Block(NamedTuple):
 
             # No more validation for a block getting attached to a branch.
             if prev_block_chain_idx != Params.ACTIVE_CHAIN_IDX:
-                return prev_block_chain_idx
+                if prev_block == side_branches[prev_block_chain_idx-1].chain[-1]:
+                    return prev_block_chain_idx
+                else:
+                    raise BlockValidationError('branch of an existing branch chain, which is not supported')
 
 
             # Prev. block found in active chain, but isn't tip => new fork.
             elif prev_block != active_chain.chain[-1]:
-                return prev_block_chain_idx + 1  # Non-existent
+                return 1 if side_branches is None else len(side_branches)+1
 
         if Block.get_next_work_required(self.prev_block_hash, active_chain, side_branches) != self.bits:
             raise BlockValidationError('bits is incorrect')
