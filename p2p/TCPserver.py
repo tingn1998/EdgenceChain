@@ -292,6 +292,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 if chain_idx is not None and chain_idx >= 0:
                     if not TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, self.side_branches, \
                                                     self.mempool, self.utxo_set, self.mine_interrupt, self.peers):
+                        logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockSyncGet')
                         return
                 elif chain_idx is not None and chain_idx <= -1:
                     logger.info(f'[p2p] orphan or wrong block {block.id}')
@@ -426,6 +427,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 if chain_idx is not None and chain_idx >= 0:
                     if not TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, self.side_branches, \
                                                        self.mempool, self.utxo_set, self.mine_interrupt, self.peers):
+                        logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockRev')
                         return
                     self.sendPeerExtend()
                 logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockRev')

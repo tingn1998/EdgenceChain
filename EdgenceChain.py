@@ -99,6 +99,7 @@ class EdgenceChain(object):
             )
 
             if block.bits is None:
+                logger.info(f'####### out of chain_lock: {chain_use_id} of assemble_and_solve_block')
                 return None
 
             if not block.txns[1:]:
