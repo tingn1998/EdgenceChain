@@ -401,14 +401,16 @@ class TCPHandler(socketserver.BaseRequestHandler):
             with self.chain_lock:
                 chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
                 logger.info(f'####### into chain_lock: {chain_use_id} of handleTxRev')
-                if self.mempool.add_txn_to_mempool(txn, self.utxo_set):
-                    if len(self.peers) > 0:
-                        for _peer in random.sample(self.peers, min(len(self.peers),5)):
-                            if _peer != peer:
-                                Utils.send_to_peer(Message(Actions.TxRev, txn, Params.PORT_CURRENT), _peer)
-                else:
-                    logger.info(f"[p2p] received txn {txn.id}, but validate failed.")
+                ret = self.mempool.add_txn_to_mempool(txn, self.utxo_set)
                 logger.info(f'####### out of chain_lock: {chain_use_id} of handleTxRev')
+            if ret:
+                if len(self.peers) > 0:
+                    for _peer in random.sample(self.peers, min(len(self.peers),5)):
+                        if _peer != peer:
+                            Utils.send_to_peer(Message(Actions.TxRev, txn, Params.PORT_CURRENT), _peer)
+            else:
+                logger.info(f"[p2p] received txn {txn.id}, but validate failed.")
+
         else:
             logger.info(f'[p2p] {txn} is not a Transaction object in handleTxRev')
             return

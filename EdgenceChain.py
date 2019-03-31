@@ -209,15 +209,17 @@ class EdgenceChain(object):
                             TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, \
                                                                   self.side_branches, self.mempool, \
                                                            self.utxo_set, self.mine_interrupt, self.peers)
-                        elif chain_idx is None:
-                            logger.info(f'mined already seen block {block.id}, just discard it and go')
-                        elif chain_idx == -2:
-                            logger.info(f"mined an orphan block {block.id}, just discard it and go")
-                        elif chain_idx == -1:
-                            logger.info(f'a mined block {block.id} but failed validation')
-                        else:
-                            logger.info(f'unwanted result of check block place')
                         logger.info(f'####### out of chain_lock: {chain_use_id} of mine_forever')
+
+                    if chain_idx is None:
+                        logger.info(f'mined already seen block {block.id}, just discard it and go')
+                    elif chain_idx == -2:
+                        logger.info(f"mined an orphan block {block.id}, just discard it and go")
+                    elif chain_idx == -1:
+                        logger.info(f'a mined block {block.id} but failed validation')
+                    else:
+                        logger.info(f'unwanted result of check block place')
+
 
         def initiative_sync():
             logger.info(f'thread for request top block periodically....')
