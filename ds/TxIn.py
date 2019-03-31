@@ -13,6 +13,11 @@ class TxIn(NamedTuple):
     unlock_sig: bytes
     unlock_pk: bytes
 
+    # define scriptSig and len here
+
+    # sig_len: int
+    # signature_script: str
+
     # A sender-defined sequence number which allows us replacement of the txn
     # if desired.
     sequence: int

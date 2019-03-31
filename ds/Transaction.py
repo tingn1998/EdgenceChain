@@ -20,6 +20,8 @@ import ecdsa
 import logging
 import os
 
+from .. import script
+
 logging.basicConfig(
     level=getattr(logging, os.environ.get('TC_LOG_LEVEL', 'INFO')),
     format='[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s')
@@ -85,52 +87,57 @@ class Transaction(NamedTuple):
         parameters facilitate different uses.
         """
 
-        def validate_signature_for_spend(txin, utxo: UnspentTxOut):
+        # def validate_signature_for_spend(txin, utxo: UnspentTxOut):
+        #
+        #     # 调整构建信息部分，非常简略，约等于SIGHASH ALL hash_type=0
+        #     # 同样这里构建的输出就是交易的TxIn部分，需要与输入对应式地重写
+        #     # to_spend即previous_output，
+        #     def build_spend_message(to_spend, pk, sequence, txouts) -> bytes:
+        #         """This should be ~roughly~ equivalent to SIGHASH_ALL."""
+        #         return Utils.sha256d(
+        #             Utils.serialize(to_spend) + str(sequence) +
+        #             binascii.hexlify(pk).decode() + Utils.serialize(txouts)).encode()
+        #
+        #         # 这个格式实际上是：
+        #         # to_spend + sequence + public_key + txouts
+        #
+        #     """
+        #     能够提供的参数有：
+        #     txin|.to_spend: Union[OutPoint, None]
+        #             |OutPoint = NamedTuple('OutPoint', [('txid', str), ('txout_idx', int)]):相当于类封装过程
+        #         |.unlock_pk: bytes
+        #         |.unlock_sig: bytes
+        #         |.sequence:
+        #
+        #     utxo|value: int
+        #         |to_address: str
+        #         |txid: str
+        #         |txout_idx: int
+        #         |is_coinbase: bool
+        #         |height: int
+        #     """
+        #
+        #     # 公钥作为地址，也就是给地址加密而已
+        #     pubkey_as_addr = Wallet.pubkey_to_address(txin.unlock_pk)
+        #     # 验证公钥串的内容
+        #     verifying_key = ecdsa.VerifyingKey.from_string(
+        #         txin.unlock_pk, curve=ecdsa.SECP256k1)
+        #
+        #     # 验证公钥地址是否与utxo中内容相同
+        #     if pubkey_as_addr != utxo.to_address:
+        #         raise TxUnlockError("Pubkey doesn't match")
+        #
+        #     try:
+        #         # 封装输出部分内容
+        #         spend_msg = build_spend_message(
+        #             txin.to_spend, txin.unlock_pk, txin.sequence, self.txouts)
+        #         # 都是调用ecdsa的已有方法
+        #         verifying_key.verify(txin.unlock_sig, spend_msg)
+        #     except Exception:
+        #         logger.exception(f'[ds] Key verification failed')
+        #         raise TxUnlockError("Signature doesn't match")
+        #     return True
 
-            # 调整构建信息部分，非常简略，约等于SIGHASH ALL
-            # 同样这里构建的输出就是交易的TxIn部分，需要与输入对应式地重写
-            def build_spend_message(to_spend, pk, sequence, txouts) -> bytes:
-                """This should be ~roughly~ equivalent to SIGHASH_ALL."""
-                return Utils.sha256d(
-                    Utils.serialize(to_spend) + str(sequence) +
-                    binascii.hexlify(pk).decode() + Utils.serialize(txouts)).encode()
-
-            """
-            能够提供的参数有：
-            txin|.to_spend: Union[OutPoint, None]
-                |.unlock_pk: bytes
-                |.unlock_sig: bytes
-                |.sequence: int
-            utxo|value: int
-                |to_address: str
-                |txid: str
-                |txout_idx: int
-                |is_coinbase: bool
-                |height: int
-            """
-
-            # 公钥作为地址，也就是给地址加密而已
-            pubkey_as_addr = Wallet.pubkey_to_address(txin.unlock_pk)
-            # 验证公钥串的内容
-            verifying_key = ecdsa.VerifyingKey.from_string(
-                txin.unlock_pk, curve=ecdsa.SECP256k1)
-
-            # 验证公钥地址是否与utxo中内容相同
-            if pubkey_as_addr != utxo.to_address:
-                raise TxUnlockError("Pubkey doesn't match")
-
-            try:
-                # 封装输出部分内容
-                spend_msg = build_spend_message(
-                    txin.to_spend, txin.unlock_pk, txin.sequence, self.txouts)
-                # 都是调用ecdsa的已有方法
-                verifying_key.verify(txin.unlock_sig, spend_msg)
-            except Exception:
-                logger.exception(f'[ds] Key verification failed')
-                raise TxUnlockError("Signature doesn't match")
-            return True
-
-        # 获取当前高度值
         def get_current_height(chainfile=Params.CHAIN_FILE):
             if not os.path.isfile(chainfile):
                 raise ChainFileLostError('chain file not found')
@@ -142,9 +149,10 @@ class Transaction(NamedTuple):
                 return 0
             return height
 
-        # 简单验证过程
+        # pre-verify process
         self.validate_basics(as_coinbase=as_coinbase)
 
+        # check the fee
         available_to_spend = 0
 
         for idx, txin in enumerate(self.txins):
@@ -157,6 +165,7 @@ class Transaction(NamedTuple):
             if allow_utxo_from_mempool:
                 utxo = utxo or mempool.find_utxo_in_mempool(txin)
 
+            # get utxo from the mempool for farther verify
             if not utxo:
                 raise TxnValidationError(
                     f'Could find no UTXO for TxIn [{idx}] for txn: {self.id}',
@@ -167,8 +176,17 @@ class Transaction(NamedTuple):
                     Params.COINBASE_MATURITY:
                 raise TxnValidationError(f'Coinbase UTXO not ready for spend')
 
+            # do script check in this part!
             try:
-                validate_signature_for_spend(txin, utxo)
+                # validate_signature_for_spend(txin, utxo) (old version)
+                # get the bool for verify and str for to do maybe update process?(ljq)
+                txio = script.Script(utxo)
+                valid = txio.verify()
+                addresses = [txio.output_address(o) for o in range(0, txio.output_count)]
+                if not valid:
+                    logger.exception(f'[script] Script check failed in Transaction part!')
+                    raise TxnValidationError(f'Script check failed')
+
             except TxUnlockError:
                 raise TxnValidationError(f'{txin} is not a valid spend of {utxo}')
 

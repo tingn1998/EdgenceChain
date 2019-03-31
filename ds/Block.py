@@ -218,8 +218,7 @@ class Block(NamedTuple):
         if MerkleNode.get_merkle_root_of_txns(self.txns).val != self.merkle_hash:
             raise BlockValidationError('Merkle hash invalid')
 
-
-        #a
+        # a
         if not self.prev_block_hash and active_chain.height == 1 and self.id == active_chain.chain[0].id:
             # this block is the genesis block
             if self.timestamp >= int(time.time()):

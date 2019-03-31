@@ -8,25 +8,22 @@ from ds.UnspentTxOut import UnspentTxOut
 from ds.OutPoint import OutPoint
 from ds.BaseUTXO_Set import BaseUTXO_Set
 
-
-
 logging.basicConfig(
     level=getattr(logging, os.environ.get('TC_LOG_LEVEL', 'INFO')),
     format='[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
 
 
-
-  # UTXO set
+# UTXO set
 
 
 class UTXO_Set(BaseUTXO_Set):
 
     def __init__(self):
         self.utxoSet: Mapping[OutPoint, UnspentTxOut] = {}
+
     def get(self):
         return self.utxoSet
-
 
     def add_to_utxo(self, txout, tx, idx, is_coinbase, height):
         utxo = UnspentTxOut(
@@ -35,7 +32,6 @@ class UTXO_Set(BaseUTXO_Set):
 
         logger.info(f'adding tx outpoint {utxo.outpoint} to utxo_set')
         self.utxoSet[utxo.outpoint] = utxo
-
 
     def rm_from_utxo(self, txid, txout_idx):
         del self.utxoSet[OutPoint(txid, txout_idx)]
@@ -50,6 +46,3 @@ class UTXO_Set(BaseUTXO_Set):
 
         return UnspentTxOut(
             *txout, txid=txid, is_coinbase=False, height=-1, txout_idx=txout_idx)
-
-
-

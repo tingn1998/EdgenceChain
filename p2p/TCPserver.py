@@ -235,7 +235,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 for height, block in enumerate(chain, 1) for txn in block.txns)
         with self.chain_lock:
             if txid in self.mempool.mempool:
-                status = f'txn {txid} found in_mempool'
+                status = f'txn {txid} found in_mempool' # str
                 Utils.send_to_peer(Message(Actions.TxStatusRev, status, Params.PORT_CURRENT), peer)
                 return
             for tx, block, height in _txn_iterator(self.active_chain.chain):
@@ -385,7 +385,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
             else:
                 logger.exception(f'[p2p] block {block.id} failed validation due to internal error in this block')
                 return -2  # Internal error in this block
-
 
         if chain_idx != Params.ACTIVE_CHAIN_IDX and len(side_branches) < chain_idx:
             logger.info(

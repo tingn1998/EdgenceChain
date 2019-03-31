@@ -1,10 +1,17 @@
 import inspect
 import struct
+import logging
+import os
 
 from .bytevector import ByteVector
 from . import opcodes
 
 from . import scriptUtils
+
+logging.basicConfig(
+    level=getattr(logging, os.environ.get('TC_LOG_LEVEL', 'INFO')),
+    format='[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s')
+logger = logging.getLogger(__name__)
 
 # two main classes
 __all__ = ['Script', 'Tokenizer']
@@ -162,7 +169,55 @@ def _hash_op(stack, func) -> bool:
 # ————————————————————process the signature—————————————————————————
 
 def check_signature(signature, public_key, hash_type, subscript, transaction, input_index) -> bool:
-    @TODO
+    # figure out the hash_type and adjust the signature
+    if hash_type == 0:
+        hash_type = ord(signature[-1])
+    signature = signature[:-1]
+
+    # print(hash_type)
+
+    # SIGHASH_ALL
+    if (hash_type & 0x1f) == 0x01 or hash_type == 0:
+        # print "ALL"
+        tx_ins = []
+        for (index, tx_in) in enumerate(transaction.inputs):
+            script = ''
+            if index == input_index:
+                script = subscript # find the
+
+            # form the new tx_ins
+            tx_in = protocol.TxnIn(tx_in.previous_output, script, tx_in.sequence)
+            tx_ins.append(tx_in)
+
+        tx_outs = transaction.outputs
+
+    # SIGHASH_NONE (other tx_in.sequence = 0, tx_out = [ ])
+
+    # SIGHASH_SINGLE (len(tx_out) = input_index + 1, other outputs = (-1, ''), other tx_in.sequence = 0)
+
+    else:
+        raise Exception('Wrong hash type: %d' % hash_type)
+
+    # SIGHASH_ANYONECANPAY
+    if (hash_type & 0x80) == 0x80:
+        # print "ANYONE"
+        tx_in = transaction.inputs[input_index]
+        tx_ins = [protocol.TxnIn(tx_in.previous_output, subscript, tx_in.sequence)]
+
+        tx_outs = transaction.outputs
+
+    # build the new message
+    tx_copy = FlexTxn(transaction.version, tx_ins, tx_outs, transaction.lock_time)
+
+    # ——————————————compute the data to verify————————————————
+
+    # compute the hash value of the signature
+    sig_hash = struct.pack('<I', hash_type) # str type
+
+    # rebuild the data
+    payload = tx_copy.binary() + sig_hash
+
+    return # verify process
 
 
 # this class is used to form a output using the outputs' template
@@ -187,14 +242,26 @@ class Tokenizer(object):
 
     OP_LITERAL = 0x1ff
 
+    ### Init part
+    def __init__(self, script, expand_verify=False):
+        self._script = script
+        self._expand_verify = expand_verify
+        self._tokens = []
+        self._process(script)
+
+    # when we add another part we also check for it.
+    def append(self, script):
+        self._script += script
+        self._process(script)
+
+
+    # map used to check the final opcode.
     _Verify = {
         opcodes.OP_EQUALVERIFY: opcodes.OP_EQUAL,
         opcodes.OP_NUMEQUALVERIFY: opcodes.OP_NUMEQUAL,
         opcodes.OP_CHECKSIGVERIFY: opcodes.OP_CHECKSIG,
         opcodes.OP_CHECKMULTISIGVERIFY: opcodes.OP_CHECKMULTISIG,
     }
-
-    ### Init part!!
 
     # it's checked by final check-function
     def get_subscript(self, start_index=0, filter=None) -> str:
@@ -209,7 +276,7 @@ class Tokenizer(object):
         # return the checked script
         return output
 
-    # Given a template, return True if this script matches.
+    # Given a template, return True if this script matches
     def match_template(self, template) -> bool:
 
         if not template[0](self):
@@ -237,11 +304,157 @@ class Tokenizer(object):
     def get_value(self, index) -> str:
         return self._tokens[index][2]
 
+    # Internal function which parse the script into tokens
+    def _process(self, script):
+
+        while script:
+
+            # process one code from script
+            opcode = ord(script[0])
+            bytes = script[0]
+            script = script[1:]
+
+            value = None
+            verify = False
+
+            if opcode == opcodes.OP_0:
+                value = Zero
+                opcode = Tokenizer.OP_LITERAL
+
+            # push data options
+            elif 1 <= opcode <= 78:
+                length = opcode
+
+                if opcodes.OP_PUSHDATA1 <= opcode <= opcodes.OP_PUSHDATA4:
+                    op_length = [1, 2, 4][opcode - opcodes.OP_PUSHDATA1]
+                    format = ['<B', '<H', '<I'][opcode - opcodes.OP_PUSHDATA1]
+                    length = struct.unpack(format, script[:op_length])[0]
+                    bytes += script[:op_length]
+                    script = script[op_length:] # pop the data from script by length
+
+                value = ByteVector(vector=script[:length])
+                bytes += script[:length]
+                script = script[length:]
+                if len(value) != length:
+                    raise Exception('not enough script for literal')
+                opcode = Tokenizer.OP_LITERAL
+
+            elif opcode == opcodes.OP_1NEGATE:
+                opcode = Tokenizer.OP_LITERAL
+                value = ByteVector.from_value(-1)
+
+            elif opcode == opcodes.OP_TRUE:
+                opcode = Tokenizer.OP_LITERAL
+                value = ByteVector.from_value(1)
+
+            elif opcodes.OP_1 <= opcode <= opcodes.OP_16:
+                value = ByteVector.from_value(opcode - opcodes.OP_1 + 1)
+                opcode = Tokenizer.OP_LITERAL
+
+            elif self._expand_verify and opcode in self._Verify:
+                opcode = self._Verify[opcode]
+                verify = True
+
+            self._tokens.append((opcode, bytes, value))
+
+            if verify:
+                self._tokens.append((opcodes.OP_VERIFY, '', None))
+
+    def __len__(self):
+        return len(self._tokens)
+
+    def __getitem__(self, name):
+        return self._tokens[name][0]
+
+    def __iter__(self):
+        for (opcode, bytes, value) in self._tokens:
+            yield opcode
+
+    def __str__(self):
+        output = []
+        for (opcode, bytes, value) in self._tokens:
+            if opcode == Tokenizer.OP_LITERAL:
+                output.append(value.vector.encode('hex'))
+            else:
+                if bytes:
+                    output.append(opcodes.get_opcode_name(ord(bytes[0])))
+
+        return " ".join(output)
 
 # —————————————————————— main stack Process————————————————————
 
 class Script(object):
 
+    def __init__(self, transaction):
+        self._transaction = transaction
+
+    def input_count(self) -> int:
+        return len(self._transaction.inputs)
+
+    @property
+    def output_count(self) -> int:
+        return len(self._transaction.outputs)
+
+    def output_address(self, output_index) -> str:
+
+        # get the script
+        pk_script = self._transaction.outputs[output_index].pk_script
+        # get tokens for script
+        tokens = Tokenizer(pk_script)
+
+        # matching the template(P2PKH or P2PK)
+        if tokens.match_template(TEMPLATE_PAY_TO_PUBKEY_HASH):
+            pubkeyhash = tokens.get_value(2).vector
+            return util.key.pubkeyhash_to_address(pubkeyhash, self._coin.address_version)
+
+        if tokens.match_template(TEMPLATE_PAY_TO_PUBKEY):
+            pubkey = tokens.get_value(0).vector
+            return util.key.publickey_to_address(pubkey, self._coin.address_version)
+
+        return None
+
+    # verify one input: need (idx,pk)
+    def verify_input(self, input_index, pk_script) -> bool:
+
+        input = self._transaction.inputs[input_index]
+        # ——————————————————————do process function！———————————————————————
+        return self.process(input.signature_script, pk_script, self._transaction, input_index)
+
+    def verify(self) -> bool:
+        """Return True if all transaction inputs can be verified against their
+           previous output."""
+
+        for i in range(0, len(self._transaction.inputs)):
+
+            # ignore coinbase (generation transaction input)
+            if self._transaction.index == 0 and i == 0: continue
+
+            # verify the input with its previous output
+            previous_output = self._transaction.previous_output(i)  # 只要取得前向输入就可以
+            if not self.verify_input(i, previous_output.pk_script):
+                # print "INVALID:", self._transaction.hash.encode('hex'), i
+                logger.exception(f'[script] script verification wrong in Script part!')
+                return False
+
+        return True
+
+    # matching the template(P2PKH or P2PK)
+    def script_form(self, output_index) -> str:
+        pk_script = self._transaction.outputs[output_index].pk_script
+        tokens = Tokenizer(pk_script)
+        for (sf, template) in Templates:
+            if tokens.match_template(template):
+                return sf
+        return SCRIPT_FORM_NON_STANDARD
+
+    # should I use this?(ljq)
+    def is_standard_script(self, output_index) -> bool:
+        pk_script = self._transaction.outputs[output_index]
+        tokens = Tokenizer(pk_script, expand_verify=False)
+        for sf in STANDARD_SCRIPT_FORMS:
+            if tokens.match_template(Templates[sf]):
+                return True
+        return False
 
     # Notice: lots of the process in the method is a regular process of bit-coin script language
     @staticmethod
