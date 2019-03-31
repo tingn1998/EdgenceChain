@@ -274,6 +274,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
         with self.chain_lock:
+            chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
+            logger.info(f'####### into chain_lock: {chain_use_id} of handleBlockSyncGet')
+
             chain_idx  = TCPHandler.check_block_place(new_blocks[0], self.active_chain, self.utxo_set, \
                                                           self.mempool, self.side_branches)
             if chain_idx is not None and chain_idx >= 1:
@@ -296,8 +299,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 else:
                     logger.info(f'[p2p] do nothing for block {block.id}')
 
-
             new_tip_id = self.active_chain.chain[-1].id
+            logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockSyncGet')
+
         logger.info(f'[p2p] current chain height {self.active_chain.height}, and continue initial block download ... ')
 
         message = Message(Actions.BlocksSyncReq, new_tip_id, Params.PORT_CURRENT)
@@ -393,6 +397,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
         if isinstance(txn, Transaction):
             logger.info(f"[p2p] received txn {txn.id} from peer {peer}")
             with self.chain_lock:
+                chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
+                logger.info(f'####### into chain_lock: {chain_use_id} of handleTxRev')
                 if self.mempool.add_txn_to_mempool(txn, self.utxo_set):
                     if len(self.peers) > 0:
                         for _peer in random.sample(self.peers, min(len(self.peers),5)):
@@ -400,6 +406,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                 Utils.send_to_peer(Message(Actions.TxRev, txn, Params.PORT_CURRENT), _peer)
                 else:
                     logger.info(f"[p2p] received txn {txn.id}, but validate failed.")
+                logger.info(f'####### out of chain_lock: {chain_use_id} of handleTxRev')
         else:
             logger.info(f'[p2p] {txn} is not a Transaction object in handleTxRev')
             return
@@ -410,6 +417,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
             if peer != Peer('127.0.0.1', Params.PORT_CURRENT):
                 logger.info(f"[p2p] received block {block.id} from peer {peer}")
             with self.chain_lock:
+                chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
+                logger.info(f'####### into chain_lock: {chain_use_id} of handleBlockRev')
+
+
                 chain_idx  = TCPHandler.check_block_place(block, self.active_chain, self.utxo_set, self.mempool, \
                                                           self.side_branches)
                 if chain_idx is not None and chain_idx >= 0:
@@ -417,6 +428,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                                        self.mempool, self.utxo_set, self.mine_interrupt, self.peers):
                         return
                     self.sendPeerExtend()
+                logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockRev')
             if chain_idx is not None and chain_idx >= 0:
                 if len(self.peers) > 0:
                     for _peer in random.sample(self.peers, min(len(self.peers),5)):

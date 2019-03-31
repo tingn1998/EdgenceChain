@@ -83,6 +83,9 @@ class EdgenceChain(object):
         Construct a Block by pulling transactions from the mempool, then mine it.
         """
         with self.chain_lock:
+            chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
+            logger.info(f'####### into chain_lock: {chain_use_id} of assemble_and_solve_block')
+
             prev_block_hash = self.active_chain.chain[-1].id if self.active_chain.chain else None
 
             block = Block(
@@ -109,6 +112,8 @@ class EdgenceChain(object):
                 my_address,
                 Block.get_block_subsidy(self.active_chain) + fees,
                 self.active_chain.height)
+            logger.info(f'####### out of chain_lock: {chain_use_id} of assemble_and_solve_block')
+
         block.txns[0] = coinbase_txn
         block = block._replace(merkle_hash=MerkleNode.get_merkle_root_of_txns(block.txns).val)
 
@@ -193,6 +198,9 @@ class EdgenceChain(object):
                                 logger.info(f'remove dead peer {_peer}')
 
                     with self.chain_lock:
+                        chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
+                        logger.info(f'####### into chain_lock: {chain_use_id} of mine_forever')
+
                         chain_idx  = TCPHandler.check_block_place(block, self.active_chain, self.utxo_set, \
                                                                   self.mempool, self.side_branches)
 
@@ -208,6 +216,7 @@ class EdgenceChain(object):
                             logger.info(f'a mined block {block.id} but failed validation')
                         else:
                             logger.info(f'unwanted result of check block place')
+                        logger.info(f'####### out of chain_lock: {chain_use_id} of mine_forever')
 
         def initiative_sync():
             logger.info(f'thread for request top block periodically....')
