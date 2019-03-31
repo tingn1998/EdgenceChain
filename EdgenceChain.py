@@ -211,7 +211,9 @@ class EdgenceChain(object):
                                                            self.utxo_set, self.mine_interrupt, self.peers)
                         logger.info(f'####### out of chain_lock: {chain_use_id} of mine_forever')
 
-                    if chain_idx is None:
+                    if chain_idx is not None and chain_idx >= 0:
+                        pass
+                    elif chain_idx is None:
                         logger.info(f'mined already seen block {block.id}, just discard it and go')
                     elif chain_idx == -2:
                         logger.info(f"mined an orphan block {block.id}, just discard it and go")
