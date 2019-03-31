@@ -174,7 +174,7 @@ class EdgenceChain(object):
                             pass
                         else:
                             Peer.save_peers(self.peers)
-                            logger.info(f'remove dead peer {_peer}')
+                            logger.info(f'remove dead peer {peer}')
 
         else:
             logger.info(f'no peer nodes existed, ibd_done is set')
