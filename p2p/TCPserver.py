@@ -429,8 +429,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                                        self.mempool, self.utxo_set, self.mine_interrupt, self.peers):
                         logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockRev')
                         return
-                    self.sendPeerExtend()
+
                 logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockRev')
+
             if chain_idx is not None and chain_idx >= 0:
                 if len(self.peers) > 0:
                     for _peer in random.sample(self.peers, min(len(self.peers),5)):
@@ -441,6 +442,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                     self.peers.remove(_peer)
                                     Peer.save_peers(self.peers)
                                     logger.info(f'[p2p] remove dead peer {_peer}')
+                self.sendPeerExtend()
 
             elif chain_idx is None:
                 logger.info(f'[p2p] already seen block {block.id}, and do nothing')
