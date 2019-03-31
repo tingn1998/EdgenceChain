@@ -95,27 +95,106 @@ class Utils(object):
         return int_to_8bytes(len(to_send)) + to_send
 
     @classmethod
-    def send_to_peer(cls, data, peer)->bool:
+    def send_to_peer(cls, data, peer, itself: bool = False) -> int:
+
+        from p2p.Message import Actions
+        from p2p.Message import Message
+
         tries_left = int(Params.TRIES_MAXIMUM)
 
         if tries_left <= 0:
-            logger.info(f'[utils] tries_left in send_to_peer must be larger than or equal to  1')
-            return False
+            logger.info(f'[utils] initial tries_left is less than 1, will not send data to other nodes')
+            return -2
 
         while tries_left > 0:
-            #logger.info(f'[utils] begin to create socket connection with peer {peer}' )
+
             try:
-                with socket.create_connection(peer(), timeout=1) as s:
+                if not itself:
+                    #logger.info(f'[utils] begin to create socket connection with peer {peer}' )
+                    pass
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #socket.create_connection(peer(), timeout=30) as s:
+                    s.connect(peer())
+                    #logger.info(f'[Utils] succeed to create socket connection with {peer}')
                     s.sendall(cls.encode_socket_data(data))
-            except Exception:
-                logger.exception(f'[utils] failed to send to {peer} data in {Params.TRIES_MAXIMUM+1-tries_left}th time')
+                    #logger.info(f'[Utils] succeed to send data to {peer}')
+            except ConnectionRefusedError as e:
+                logger.exception(f'[utils] {repr(e)}, failed to send to {peer} data about {Actions.num2name[str(data.action)] if hasattr(data, "action") else None} '
+                                 f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
+                try:
+                    s.close()
+                except:
+                    pass
                 tries_left -= 1
                 time.sleep(2)
                 if tries_left <= 0:
-                    return False
+                    return 1
+            except TimeoutError as e:
+                logger.exception(f'[utils] {repr(e)}, failed to send to {peer} data about {Actions.num2name[str(data.action)] if hasattr(data, "action") else None} '
+                                 f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
+                try:
+                    s.close()
+                except:
+                    pass
+                tries_left -= 1
+                time.sleep(2)
+                if tries_left <= 0:
+                    return 2
+            except BrokenPipeError as e:
+                logger.exception(f'[utils] {repr(e)}, failed to send to {peer} data about {Actions.num2name[str(data.action)] if hasattr(data, "action") else None} '
+                                 f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
+                try:
+                    s.close()
+                except:
+                    pass
+                tries_left -= 1
+                time.sleep(2)
+                if tries_left <= 0:
+                    return 3
+            except Exception as e:
+                logger.exception(f'[utils] {repr(e)}, failed to send to {peer} data about {Actions.num2name[str(data.action)] if hasattr(data, "action") else None} '
+                                 f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
+                try:
+                    s.close()
+                except:
+                    pass
+                tries_left -= 1
+                time.sleep(2)
+                if tries_left <= 0:
+                    return -1
             else:
-                logger.info(f'[utils] succeed in sending to {peer} data in {Params.TRIES_MAXIMUM+1-tries_left}th time')
-                return True
+                try:
+                    s.close()
+                except:
+                    pass
+                if not itself:
+                    logger.info(f'[utils] succeed in sending to {peer} data about {Actions.num2name[str(data.action)] if hasattr(data, "action") else None}'
+                            f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
+                    pass
+                return 0
+    @classmethod
+    def is_peer_valid(cls, peer) -> bool:
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(5)
+                s.connect(peer())
+        except ConnectionRefusedError:
+            try:
+                s.close()
+            except:
+                pass
+            return False
+        except Exception:
+            try:
+                s.close()
+            except:
+                pass
+        else:
+            try:
+                s.close()
+            except:
+                pass
+            return True
+        return True
 
 
     @classmethod

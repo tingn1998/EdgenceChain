@@ -27,6 +27,7 @@ class PoW(object):
             nonce += 1
 
             if mine_interrupt.is_set():
+                logger.info(f'[consensus] mining interrupted +++ {nonce}')
                 mine_interrupt.clear()
                 return None
 

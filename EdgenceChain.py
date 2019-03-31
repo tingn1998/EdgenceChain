@@ -20,7 +20,10 @@ from utils.Utils import Utils
 
 from params.Params import Params
 
-
+from ds.OutPoint import OutPoint
+from ds.UnspentTxOut import UnspentTxOut
+from ds.TxIn import TxIn
+from ds.TxOut import TxOut
 from ds.Transaction import Transaction
 from ds.Block import Block
 from ds.UTXO_Set import UTXO_Set
@@ -66,6 +69,11 @@ class EdgenceChain(object):
         self.ibd_done: threading.Event = threading.Event()
         self.chain_lock: _thread.RLock = threading.RLock()
 
+        self.gs = dict()
+        self.gs['Block'], self.gs['Transaction'], self.gs['UnspentTxOut'], self.gs['Message'], self.gs['TxIn'], self.gs['TxOut'], self.gs['Peer'], self.gs['OutPoint']= \
+                    globals()['Block'], globals()['Transaction'], globals()['UnspentTxOut'], globals()['Message'], \
+                    globals()['TxIn'], globals()['TxOut'], globals()['Peer'], globals()['OutPoint']
+
 
 
 
@@ -75,6 +83,9 @@ class EdgenceChain(object):
         Construct a Block by pulling transactions from the mempool, then mine it.
         """
         with self.chain_lock:
+            #chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
+            #logger.info(f'####### into chain_lock: {chain_use_id} of assemble_and_solve_block')
+
             prev_block_hash = self.active_chain.chain[-1].id if self.active_chain.chain else None
 
             block = Block(
@@ -88,11 +99,13 @@ class EdgenceChain(object):
             )
 
             if block.bits is None:
+                #logger.info(f'####### out of chain_lock: {chain_use_id} of assemble_and_solve_block')
                 return None
 
             if not block.txns[1:]:
                 block = self.mempool.select_from_mempool(block, self.utxo_set)
-                logger.info(f'{len(block.txns[1:])} transactions selected from mempool to construct this block')
+                if len(block.txns[1:]) > 0:
+                    logger.info(f'{len(block.txns[1:])} transactions selected from mempool to construct this block')
 
             fees = block.calculate_fees(self.utxo_set)
             my_address = self.wallet()[2]
@@ -100,6 +113,8 @@ class EdgenceChain(object):
                 my_address,
                 Block.get_block_subsidy(self.active_chain) + fees,
                 self.active_chain.height)
+            #logger.info(f'####### out of chain_lock: {chain_use_id} of assemble_and_solve_block')
+
         block.txns[0] = coinbase_txn
         block = block._replace(merkle_hash=MerkleNode.get_merkle_root_of_txns(block.txns).val)
 
@@ -117,13 +132,50 @@ class EdgenceChain(object):
         self.ibd_done.clear()
         if self.peers:
             logger.info(f'start initial block download from {len(self.peers)} peers')
-            peer_sample = random.sample(self.peers, min(len(self.peers),5))
+            peer_sample = random.sample(self.peers, min(len(self.peers),4))
+
+            message = Message(Actions.BlocksSyncReq, self.active_chain.chain[-1].id, Params.PORT_CURRENT)
             for peer in peer_sample:
-                if not Utils.send_to_peer(Message(Actions.BlocksSyncReq, self.active_chain.chain[-1].id, \
-                                              Params.PORT_CURRENT), peer):
-                    self.peers.remove(peer)
-                    Peer.save_peers(self.peers)
-                    logger.info(f'remove dead peer {peer}')
+                try:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #socket.create_connection(peer(), timeout=25) as s:
+                        s.settimeout(70)
+                        logger.info(f'[EdgenceChain] begin to connect to {peer}')
+                        s.connect(peer())
+                        logger.info(f'[EdgenceChain] succeed to create socket connection with {peer}, and begin to send data ...')
+                        s.sendall(Utils.encode_socket_data(message))
+                        logger.info(f'[EdgenceChain] succeed to send BlocksSyncReq to {peer}')
+                        msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
+                        data = b''
+                        while msg_len > 0:
+                            tdat = s.recv(1024)
+                            data += tdat
+                            msg_len -= len(tdat)
+
+                    s.close()
+                    message = Utils.deserialize(data.decode(), self.gs) if data else None
+                    if message:
+                        logger.info(f'[EdgenceChain] received blocks in initial_block_download from peer {peer}')
+                        message = Message(message.action, message.data, Params.PORT_CURRENT, peer)
+                        ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
+
+                        if ret != 0:
+                            logger.info(f'cannot send data to itself')
+
+
+                        #logger.info(f'[EdgenceChain] send BlocksSyncGet to itself')
+                    else:
+                        logger.info(f'[EdgenceChain] recv nothing from peer {peer}')
+                except Exception as e:
+                    logger.exception(f'Error: {repr(e)}, and remove dead peer {peer}')
+                    if peer in self.peers:
+                        try:
+                            self.peers.remove(peer)
+                        except:
+                            pass
+                        else:
+                            Peer.save_peers(self.peers)
+                            logger.info(f'remove dead peer {peer}')
+
         else:
             logger.info(f'no peer nodes existed, ibd_done is set')
             self.ibd_done.set()
@@ -144,12 +196,21 @@ class EdgenceChain(object):
 
                 if block:
                     for _peer in self.peers:
-                        if Utils.send_to_peer(Message(Actions.BlockRev, block, Params.PORT_CURRENT), _peer) is False:
-                            self.peers.remove(_peer)
-                            Peer.save_peers(self.peers)
-                            logger.info(f'remove dead peer {_peer}')
+                        ret = Utils.send_to_peer(Message(Actions.BlockRev, block, Params.PORT_CURRENT), _peer)
+                        if ret == 1:
+                            if _peer in self.peers:
+                                try:
+                                    self.peers.remove(_peer)
+                                except:
+                                    pass
+                                else:
+                                    Peer.save_peers(self.peers)
+                                    logger.info(f'remove dead peer {_peer}')
 
                     with self.chain_lock:
+                        #chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
+                        #logger.info(f'####### into chain_lock: {chain_use_id} of mine_forever')
+
                         chain_idx  = TCPHandler.check_block_place(block, self.active_chain, self.utxo_set, \
                                                                   self.mempool, self.side_branches)
 
@@ -157,15 +218,61 @@ class EdgenceChain(object):
                             TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, \
                                                                   self.side_branches, self.mempool, \
                                                            self.utxo_set, self.mine_interrupt, self.peers)
-                        elif chain_idx is None:
-                            logger.info(f'mined already seen block {block.id}, just discard it and go')
-                        elif chain_idx == -2:
-                            logger.info(f"mined an orphan block {block.id}, just discard it and go")
-                        elif chain_idx == -1:
-                            logger.info(f'a mined block {block.id} but failed validation')
-                        else:
-                            logger.info(f'unwanted result of check block place')
+                        #logger.info(f'####### out of chain_lock: {chain_use_id} of mine_forever')
 
+                    if chain_idx is not None and chain_idx >= 0:
+                        pass
+                    elif chain_idx is None:
+                        logger.info(f'mined already seen block {block.id}, just discard it and go')
+                    elif chain_idx == -2:
+                        logger.info(f"mined an orphan block {block.id}, just discard it and go")
+                    elif chain_idx == -1:
+                        logger.info(f'a mined block {block.id} but failed validation')
+                    else:
+                        logger.info(f'unwanted result of check block place')
+
+
+        def initiative_sync():
+            logger.info(f'thread for request top block periodically....')
+            while True:
+
+                try:
+                    time.sleep(Params.TIME_BETWEEN_BLOCKS_IN_SECS_TARGET*0.9)
+                    self.peers = list(set(self.peers))
+                    Peer.save_peers(self.peers)
+
+                    peer = random.sample(self.peers, 1)[0]
+                    message = Message(Actions.TopBlockReq, None, Params.PORT_CURRENT)
+
+
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #socket.create_connection(peer(), timeout=25) as s:
+                        #logger.info(f'[EdgenceChain] begin to connect to {peer}')
+                        s.connect(peer())
+                        #logger.info(f'[EdgenceChain] succeed to create socket connection with {peer}, and begin to send data ...')
+                        s.sendall(Utils.encode_socket_data(message))
+                        logger.info(f'[EdgenceChain] succeed to send TopBlockReq to {peer}')
+                        msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
+                        data = b''
+                        while msg_len > 0:
+                            tdat = s.recv(1024)
+                            data += tdat
+                            msg_len -= len(tdat)
+                    s.close()
+                    message = Utils.deserialize(data.decode(), self.gs) if data else None
+                    if message:
+                        logger.info(f'[EdgenceChain] received top block from peer {peer}')
+                        message = Message(Actions.BlockRev, message.data, Params.PORT_CURRENT, peer)
+                        ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
+                        if ret != 0:
+                            logger.info(f'cannot send data to itself')
+                        else:
+                            #logger.info(f'[EdgenceChain] send BlockRev to itself')
+                            pass
+                    else:
+                        logger.info(f'[EdgenceChain] recv nothing from peer {peer}')
+
+                except:
+                    pass
 
 
         # single thread mode, no need for thread lock
@@ -197,6 +304,7 @@ class EdgenceChain(object):
 
 
         start_worker(workers, mine_forever)
+        start_worker(workers, initiative_sync)
         
         [w.join() for w in workers]
 

@@ -41,7 +41,7 @@ from params.Params import Params
 
 def save_to_disk(active_chain: BlockChain, CHAIN_PATH=Params.CHAIN_FILE):
     with open(CHAIN_PATH, "wb") as f:
-        logger.info(f"[persistence] saving chain with {len(active_chain.chain)} blocks")
+        #logger.info(f"[persistence] saving chain with {len(active_chain.chain)} blocks")
         f.write(Utils.encode_chain_data(list(active_chain.chain)))
 
 

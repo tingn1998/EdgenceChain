@@ -33,7 +33,7 @@ class UTXO_Set(BaseUTXO_Set):
             *txout,
             txid=tx.id, txout_idx=idx, is_coinbase=is_coinbase, height=height)
 
-        logger.info(f'adding tx outpoint {utxo.outpoint} to utxo_set')
+        #logger.info(f'adding tx outpoint {utxo.outpoint} to utxo_set')
         self.utxoSet[utxo.outpoint] = utxo
 
 

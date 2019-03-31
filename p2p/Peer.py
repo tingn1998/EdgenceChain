@@ -54,12 +54,15 @@ class Peer(namedtuple("ip_port","ip,port")):
     def init_peers(cls, peerfile = Params.PEERS_FILE)->Iterable[NamedTuple]:
         if not os.path.exists(peerfile):
             peers: Iterable[Peer] =[]
-            for peer in Params.PEERS:
-                if (str(peer[0]) == '127.0.0.1' and int(peer[1]) == Params.PORT_CURRENT) or \
-                    (str(peer[0]) == 'localhost' and int(peer[1]) == Params.PORT_CURRENT):
+            for peerlist in Params.PEERS:
+                peer = Peer(str(peerlist[0]), int(peerlist[1]))
+                if peer== Peer('127.0.0.1', Params.PORT_CURRENT) or \
+                peer == Peer('localhost', Params.PORT_CURRENT) or \
+                    peer.ip == '0.0.0.0' or \
+                    peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
                     pass
                 else:
-                    peers.append(Peer(str(peer[0]), int(peer[1])))
+                    peers.append(peer)
             try:
                 with open(peerfile, "wb") as f:
                     logger.info(f"[p2p] saving {len(peers)} hostnames")
@@ -75,6 +78,21 @@ class Peer(namedtuple("ip_port","ip,port")):
                     gs['Peer'] = globals()['Peer']
                     peers = Utils.deserialize(f.read(msg_len), gs)
                     peers = list(set(peers))
+
+                    length=len(peers)
+                    idx=0
+                    while idx < length:
+                        peer = peers[idx]
+                        if peer== Peer('127.0.0.1', Params.PORT_CURRENT) or \
+                            peer == Peer('localhost', Params.PORT_CURRENT) or \
+                            peer.ip == '0.0.0.0' or \
+                             peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
+                            del peers[idx]
+                            idx -= 1
+                            length -= 1
+                        idx += 1
+
+
                     logger.info(f"[p2p] loading peers with {len(peers)} hostnames")
             except Exception:
                 logger.exception(f'[p2p] loading peers exception')
@@ -85,7 +103,7 @@ class Peer(namedtuple("ip_port","ip,port")):
     def save_peers(cls, peers: Iterable[NamedTuple], peerfile = Params.PEERS_FILE):
         try:
             with open(peerfile, "wb") as f:
-                logger.info(f"[p2p] saving {len(peers)} hostnames")
+                #logger.info(f"[p2p] saving {len(peers)} hostnames")
                 f.write(Utils.encode_socket_data(list(peers)))
         except Exception:
             logger.exception('[p2p] saving peers exception')

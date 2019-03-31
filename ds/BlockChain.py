@@ -53,7 +53,8 @@ class BlockChain(BaseBlockChain):
         block = self.chain[-1]
 
         for tx in block.txns:
-            mempool.mempool[tx.id] = tx
+            if tx.txins[0].to_spend is not None:
+                mempool.mempool[tx.id] = tx
 
             # Restore UTXO set to what it was before this block.
             for txin in tx.txins:
@@ -138,8 +139,10 @@ class BlockChain(BaseBlockChain):
             return reorged
 
 
-
-        logger.info(f'[ds] connecting block {block.id} to chain with index: {self.idx}')
+        if self.idx == Params.ACTIVE_CHAIN_IDX:
+            logger.info(f'[ds] ##### connecting block at height #{len(self.chain)+1} chain with index: {self.idx}: {block.id} ')
+        else:
+            logger.info(f'[ds] ## connecting block to chain with index: {self.idx}: {block.id} ')
         self.chain.append(block)
         # If we added to the active chain, perform upkeep on utxo_set and mempool.
         if self.idx == Params.ACTIVE_CHAIN_IDX:
