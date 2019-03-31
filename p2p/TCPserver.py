@@ -572,7 +572,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 if active_chain.height - branch_height_real > Params.MAXIMUM_ALLOWABLE_HEIGHT_DIFF:
                     side_branches_to_discard.append(branch_chain)
             if len(side_branches_to_discard) > 0:
-                logger.info(f'[p2p] delete {len(side_branches_to_discard)} of side branches')
+                logger.info(f'[p2p] delete {len(side_branches_to_discard)} side branches beyond MAXIMUM_ALLOWABLE_HEIGHT_DIFF')
                 for branch_chain in side_branches_to_discard:
                     side_branches.remove(branch_chain)
             for index, branch_chain in enumerate(side_branches, 1):
