@@ -68,6 +68,8 @@ class EdgenceChain(object):
         self.mine_interrupt: threading.Event = threading.Event()
         self.ibd_done: threading.Event = threading.Event()
         self.chain_lock: _thread.RLock = threading.RLock()
+        self.peers_lock: _thread.RLock = threading.RLock()
+
 
         self.gs = dict()
         self.gs['Block'], self.gs['Transaction'], self.gs['UnspentTxOut'], self.gs['Message'], self.gs['TxIn'], self.gs['TxOut'], self.gs['Peer'], self.gs['OutPoint']= \
@@ -169,7 +171,8 @@ class EdgenceChain(object):
                     logger.exception(f'Error: {repr(e)}, and remove dead peer {peer}')
                     if peer in self.peers:
                         try:
-                            self.peers.remove(peer)
+                            with self.peers_lock:
+                                self.peers.remove(peer)
                         except:
                             pass
                         else:
@@ -200,7 +203,8 @@ class EdgenceChain(object):
                         if ret == 1:
                             if _peer in self.peers:
                                 try:
-                                    self.peers.remove(_peer)
+                                    with self.peers_lock:
+                                        self.peers.remove(_peer)
                                 except:
                                     pass
                                 else:
@@ -283,7 +287,7 @@ class EdgenceChain(object):
 
         server = ThreadedTCPServer(('0.0.0.0', Params.PORT_CURRENT), TCPHandler, self.active_chain, self.side_branches,\
                                    self.orphan_blocks, self.utxo_set, self.mempool, self.peers, self.mine_interrupt, \
-                                              self.ibd_done, self.chain_lock)
+                                              self.ibd_done, self.chain_lock, self.peers_lock)
         start_worker(workers, server.serve_forever)
 
 

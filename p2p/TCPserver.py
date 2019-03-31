@@ -45,7 +45,8 @@ logger = logging.getLogger(__name__)
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     def __init__(self, ip_port, tcp_handler_class, active_chain: BlockChain, side_branches: Iterable[BlockChain], \
                  orphan_blocks: Iterable[Block], utxo_set: BaseUTXO_Set, mempool: BaseMemPool, peers: Iterable[Peer], \
-                 mine_interrupt: threading.Event, ibd_done: threading.Event, chain_lock: _thread.RLock):
+                 mine_interrupt: threading.Event, ibd_done: threading.Event, chain_lock: _thread.RLock, \
+                 peers_lock: _thread.RLock):
 
 
         self.active_chain = active_chain
@@ -57,6 +58,7 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
         self.mine_interrupt = mine_interrupt
         self.ibd_done = ibd_done
         self.chain_lock = chain_lock
+        self.peers_lock = peers_lock
 
         socketserver.TCPServer.__init__(self, ip_port, tcp_handler_class)
         logger.info(f'[p2p] listening on {Params.PORT_CURRENT}')
@@ -76,6 +78,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         self.mine_interrupt = self.server.mine_interrupt
         self.ibd_done = self.server.ibd_done
         self.chain_lock = self.server.chain_lock
+        self.peers_lock = self.server.peers_lock
 
 
 
@@ -163,7 +166,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 if ret == 1:
                     if _peer in self.peers:
                         try:
-                            self.peers.remove(_peer)
+                            with self.peers_lock:
+                                self.peers.remove(_peer)
                         except:
                             pass
                         else:
@@ -199,7 +203,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT)):
 
             if Utils.is_peer_valid(peer):
-                self.peers.append(peer)
+                with self.peers_lock:
+                    self.peers.append(peer)
                 logger.info(f'[p2p] add peer {peer} into peer list')
                 Peer.save_peers(self.peers)
                 self.sendPeerExtend()
@@ -222,7 +227,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                     peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
                     return
                 if Utils.is_peer_valid(peer):
-                    self.peers.append(peer)
+                    with self.peers_lock:
+                        self.peers.append(peer)
                     logger.info(f'[p2p] add peer {peer} into peer list')
                     Peer.save_peers(self.peers)
                     self.sendPeerExtend()
@@ -244,7 +250,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                     peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
                     return
                 if Utils.is_peer_valid(peer):
-                    self.peers.append(peer)
+                    with self.peers_lock:
+                        self.peers.append(peer)
                     logger.info(f'[p2p] add peer {peer} into peer list')
                     Peer.save_peers(self.peers)
                     self.sendPeerExtend()
@@ -320,7 +327,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                 peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
                 return
             if Utils.is_peer_valid(peer):
-                self.peers.append(peer)
+                with self.peers_lock:
+                    self.peers.append(peer)
                 logger.info(f'[p2p] add peer {peer} into peer list')
                 Peer.save_peers(self.peers)
                 self.sendPeerExtend()
@@ -447,7 +455,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                             if ret == 1:
                                 if _peer in self.peers:
                                     try:
-                                        self.peers.remove(_peer)
+                                        with self.peers_lock:
+                                            self.peers.remove(_peer)
                                     except:
                                         pass
                                     else:
@@ -613,7 +622,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
             if peer_sample in self.peers:
                 continue
             if Utils.is_peer_valid(peer_sample):
-                self.peers.append(peer_sample)
+                with self.peers_lock:
+                    self.peers.append(peer_sample)
                 logger.info(f'[p2p] add peer {peer_sample} into peer list')
                 Peer.save_peers(self.peers)
 
