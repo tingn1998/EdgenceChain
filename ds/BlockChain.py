@@ -144,10 +144,8 @@ class BlockChain(BaseBlockChain):
         self.chain.append(block)
         # If we added to the active chain, perform upkeep on utxo_set and mempool.
         if self.idx == Params.ACTIVE_CHAIN_IDX:
-
             for tx in block.txns:
                 mempool.mempool.pop(tx.id, None)
-
                 if not tx.is_coinbase:
                     for txin in tx.txins:
                         utxo_set.rm_from_utxo(*txin.to_spend)

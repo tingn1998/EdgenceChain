@@ -294,7 +294,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
             if chain_idx is not None and chain_idx >= 1:
                 # if is side branches, append the blocks (one block left) to the side branches directly
                 logger.info(f'[p2p] just append {len(new_blocks)-1} blocks to side branch {chain_idx}, leaving one block to '
-                f'be coped with method TCPHandler.do_connect_block_and_after')
+                f'be coped with method do_connect_block_and_after')
                 while len(new_blocks) >= 2:
                     self.side_branches[chain_idx-1].chain.append(new_blocks.pop(0))
 
