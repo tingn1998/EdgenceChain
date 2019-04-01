@@ -211,6 +211,8 @@ class EdgenceChain(object):
                                     Peer.save_peers(self.peers)
                                     logger.info(f'remove dead peer {_peer}')
 
+
+                    #ret_outside_chain = False
                     with self.chain_lock:
                         #chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
                         #logger.info(f'####### into chain_lock: {chain_use_id} of mine_forever')
@@ -218,11 +220,16 @@ class EdgenceChain(object):
                         chain_idx  = TCPHandler.check_block_place(block, self.active_chain, self.utxo_set, \
                                                                   self.mempool, self.side_branches)
 
+                        ret_outside_lock = False
                         if chain_idx is not None and chain_idx >= 0:
-                            TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, \
+                            ret_outside_lock = TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, \
                                                                   self.side_branches, self.mempool, \
                                                            self.utxo_set, self.mine_interrupt, self.peers)
                         #logger.info(f'####### out of chain_lock: {chain_use_id} of mine_forever')
+                    if ret_outside_lock is True:
+                        if len(self.active_chain.chain) % Params.SAVE_PER_SIZE == 0 or len(self.active_chain.chain) <= 5:
+                            Persistence.save_to_disk(self.active_chain)
+
 
                     if chain_idx is not None and chain_idx >= 0:
                         pass

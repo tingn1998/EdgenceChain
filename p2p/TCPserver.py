@@ -315,6 +315,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
             new_tip_id = self.active_chain.chain[-1].id
             #logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockSyncGet')
 
+        if len(self.active_chain.chain) % Params.SAVE_PER_SIZE == 0 or len(self.active_chain.chain) <= 5:
+            Persistence.save_to_disk(self.active_chain)
+
         logger.info(f'[p2p] current chain height {self.active_chain.height}, and continue initial block download ... ')
 
         message = Message(Actions.BlocksSyncReq, new_tip_id, Params.PORT_CURRENT)
@@ -439,13 +442,19 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
                 chain_idx  = TCPHandler.check_block_place(block, self.active_chain, self.utxo_set, self.mempool, \
                                                           self.side_branches)
+                ret_outside_lock = False
                 if chain_idx is not None and chain_idx >= 0:
-                    if not TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, self.side_branches, \
-                                                       self.mempool, self.utxo_set, self.mine_interrupt, self.peers):
+                    ret_outside_lock = TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, self.side_branches, \
+                                                       self.mempool, self.utxo_set, self.mine_interrupt, self.peers)
+                    if not ret_outside_lock:
                         #logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockRev')
                         return
 
                 #logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockRev')
+
+            if ret_outside_lock is True:
+                if len(self.active_chain.chain) % Params.SAVE_PER_SIZE == 0 or len(self.active_chain.chain) <= 5:
+                    Persistence.save_to_disk(self.active_chain)
 
             if chain_idx is not None and chain_idx >= 0:
                 if len(self.peers) > 0:
@@ -529,8 +538,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                     mempool, utxo_set, mine_interrupt, peers)
 
         if connect_block_success is not False:
-            if len(active_chain.chain) % Params.SAVE_PER_SIZE == 0 or len(active_chain.chain) <= 5:
-                Persistence.save_to_disk(active_chain)
 
             if connect_block_success is not True: # -1, success and reorg
                 logger.info(f'[p2p] a successful reorg is found, begin to deal with {len(side_branches)} side branches')
