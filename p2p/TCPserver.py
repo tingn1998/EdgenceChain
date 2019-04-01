@@ -449,6 +449,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     if not ret_outside_lock:
                         #logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockRev')
                         return
+                    if not Block.locate_block(block.id, self.active_chain, self.side_branches)[0]:
+                        return
 
                 #logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockRev')
 
