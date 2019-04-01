@@ -110,15 +110,11 @@ class BlockChain(BaseBlockChain):
                         rollback_reorg()
                         return False
 
-                for branch_chain in side_branches:
-                    if branch_chain.idx == branch_idx:
-                        branch_chain.chain = list(old_active)
+                branch_chain.chain = list(old_active)
 
-                logger.info(f'[ds] chain reorg successful with new active_chain height {active_chain.height} and '
-                            f'top block id {active_chain.chain[-1].id}')
+                logger.info(f'[ds] chain reorg successful with new active_chain height {active_chain.height} and top block id {active_chain.chain[-1].id}')
 
                 return True
-
 
 
             reorged = False
@@ -135,18 +131,19 @@ class BlockChain(BaseBlockChain):
                                 f'active_chain with real height {active_height}')
                     reorged |= _do_reorg(branch_idx, side_branches, active_chain, fork_height, mempool, \
                                          utxo_set, mine_interrupt, peers)
+                    if reorged is True:
+                        return reorged
 
             return reorged
 
 
         if self.idx == Params.ACTIVE_CHAIN_IDX:
-            logger.info(f'[ds] ##### connecting block at height #{len(self.chain)+1} chain with index: {self.idx}: {block.id} ')
+            logger.info(f'[ds] ##### connecting block at height #{len(self.chain)+1} chain with index #{self.idx}: {block.id} ')
         else:
-            logger.info(f'[ds] ## connecting block to chain with index: {self.idx}: {block.id} ')
+            logger.info(f'[ds] ## connecting block to chain with index #{self.idx}: {block.id} ')
         self.chain.append(block)
         # If we added to the active chain, perform upkeep on utxo_set and mempool.
         if self.idx == Params.ACTIVE_CHAIN_IDX:
-
 
             for tx in block.txns:
                 mempool.mempool.pop(tx.id, None)

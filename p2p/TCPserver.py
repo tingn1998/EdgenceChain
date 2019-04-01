@@ -568,6 +568,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     continue
                 fork_block, fork_height, _ = Block.locate_block(branch_chain.chain[0].prev_block_hash,
                                                         active_chain)
+                if fork_block is None:
+                    side_branches_to_discard.append(branch_chain)
+
                 branch_height_real = branch_chain.height + fork_height
                 if active_chain.height - branch_height_real > Params.MAXIMUM_ALLOWABLE_HEIGHT_DIFF:
                     side_branches_to_discard.append(branch_chain)
