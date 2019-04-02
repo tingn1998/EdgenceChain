@@ -612,10 +612,16 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
         if chain_idx != Params.ACTIVE_CHAIN_IDX and len(side_branches) < chain_idx:
-            logger.info(
-                f'[p2p] creating a new side branch (idx {chain_idx}) '
-                f'for block {block.id}')
+            logger.info(f'[p2p] creating a new side branch (idx {chain_idx}) for block {block.id}')
             side_branches.append(BlockChain(idx = chain_idx, chain = []))
+
+            prev_block, prev_block_height, prev_block_chain_idx = Block.locate_block(
+                block.prev_block_hash, active_chain, side_branches)
+            if prev_block_chain_idx != Params.ACTIVE_CHAIN_IDX: # branch of a branch
+                logger.info(f'[p2p] branch (idx {chain_idx}) of an existing side branch (idx {prev_block_chain_idx}) for block {block.id}')
+                branch_fork_height =  Block.locate_block(block.prev_block_hash, side_branches[prev_block_chain_idx-1])[1]
+                side_branches[chain_idx].chain = list(side_branches[prev_block_chain_idx-1].chain[:branch_fork_height])
+
 
         return chain_idx
 

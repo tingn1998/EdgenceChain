@@ -59,7 +59,7 @@ class Params:
 
     # list of peers
     CHUNK_SIZE = int(50)
-    SAVE_PER_SIZE = int(1)
+    SAVE_PER_SIZE = int(29)
     MAXIMUM_ALLOWABLE_HEIGHT_DIFF = 15
 
     PUBLIC_IP = ''
@@ -68,6 +68,8 @@ class Params:
     CHAIN_FILE = 'chain.dat'
     WALLET_FILE = 'mywallet.dat'
     PEERS: Iterable[Tuple] = list([('47.102.41.81', 9996),
+                      ('39.97.166.176', 9996),
+                      ('47.92.85.186', 10000),
                       ('47.111.168.213', 9996),
                       ('47.88.63.126', 9996),
                       ('161.117.84.146', 9996)

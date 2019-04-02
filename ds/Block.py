@@ -249,7 +249,10 @@ class Block(NamedTuple):
                 if prev_block == side_branches[prev_block_chain_idx-1].chain[-1]:
                     return prev_block_chain_idx
                 else:
-                    raise BlockValidationError('branch of an existing branch chain, which is not supported')
+                    #branch_fork_height =  Block.locate_block(self.prev_block_hash, side_branches[prev_block_chain_idx-1])[1]
+
+                    #raise BlockValidationError('branch of an existing branch chain, which is not supported')
+                    return len(side_branches)+1
 
 
             # Prev. block found in active chain, but isn't tip => new fork.
