@@ -70,7 +70,7 @@ class BlockChain(BaseBlockChain):
     # return values of connect_block: 1. True means success but no reorg; 2. False means unsuccess; 3. -1 means success and reorg
     def connect_block(self, block: Block, active_chain: BaseBlockChain, side_branches: Iterable[BaseBlockChain],\
                       mempool: MemPool, utxo_set: UTXO_Set, mine_interrupt: threading.Event,\
-                      peers: Iterable[Peer], doing_reorg=False) -> bool:
+                      doing_reorg=False) -> bool:
 
         def _reorg_and_succeed(active_chain: BaseBlockChain, side_branches: Iterable[BaseBlockChain], \
                                 mempool: MemPool, utxo_set:UTXO_Set, \
