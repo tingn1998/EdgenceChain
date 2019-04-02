@@ -20,5 +20,5 @@ class BaseBlockChain(object):
         pass
 
     def connect_block(self, block, active_chain, side_branches, mempool, utxo_set, mine_interrupt,\
-                      peers, doing_reorg):
+                      doing_reorg):
         pass

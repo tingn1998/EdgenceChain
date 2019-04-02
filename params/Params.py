@@ -59,8 +59,9 @@ class Params:
 
     # list of peers
     CHUNK_SIZE = int(50)
-    SAVE_PER_SIZE = int(29)
+    SAVE_PER_SIZE = int(37)
     MAXIMUM_ALLOWABLE_HEIGHT_DIFF = 15
+    MAXIMUM_FAILURE_PEER = 50
 
     PUBLIC_IP = ''
     PORT_CURRENT = int(9996)

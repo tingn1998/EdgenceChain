@@ -74,12 +74,12 @@ class BlockChain(BaseBlockChain):
 
         def _reorg_and_succeed(active_chain: BaseBlockChain, side_branches: Iterable[BaseBlockChain], \
                                 mempool: MemPool, utxo_set:UTXO_Set, \
-                                mine_interrupt: threading.Event, peers: Iterable[Peer]) -> bool:
+                                mine_interrupt: threading.Event) -> bool:
 
 
             def _do_reorg(branch_idx: int, side_branches: Iterable[BaseBlockChain], active_chain: BaseBlockChain, \
                            fork_height: int, mempool: MemPool, utxo_set:UTXO_Set, \
-                           mine_interrupt: threading.Event, peers: Iterable[Peer]) -> bool:
+                           mine_interrupt: threading.Event) -> bool:
 
                 branch_chain = side_branches[branch_idx - 1]
 
@@ -99,12 +99,12 @@ class BlockChain(BaseBlockChain):
 
                     for block in old_active:
                         assert active_chain.connect_block(block, active_chain, side_branches, mempool, utxo_set, \
-                                                          mine_interrupt, peers, \
+                                                          mine_interrupt, \
                                                           doing_reorg=True) == True
 
                 for block in branch_chain.chain:
                     if not active_chain.connect_block(block, active_chain, side_branches, mempool, utxo_set, \
-                                                      mine_interrupt, peers, doing_reorg=True):
+                                                      mine_interrupt, doing_reorg=True):
 
                         logger.info(f'[ds] reorg of branch {branch_idx} to active_chain failed, decide to rollback')
                         rollback_reorg()
@@ -129,7 +129,7 @@ class BlockChain(BaseBlockChain):
                 if branch_height_real > active_height:
                     logger.info(f'[ds] decide to reorg branch {branch_idx} with height {branch_height_real} to active_chain with real height {active_height}')
                     reorged |= _do_reorg(branch_idx, side_branches, active_chain, fork_height, mempool, \
-                                         utxo_set, mine_interrupt, peers)
+                                         utxo_set, mine_interrupt)
                     if reorged is True:
                         return reorged
 
@@ -154,7 +154,7 @@ class BlockChain(BaseBlockChain):
 
         reorg_and_succeed = False
         if doing_reorg == False:
-            reorg_and_succeed = _reorg_and_succeed(active_chain, side_branches, mempool, utxo_set, mine_interrupt, peers)
+            reorg_and_succeed = _reorg_and_succeed(active_chain, side_branches, mempool, utxo_set, mine_interrupt)
         if reorg_and_succeed or self.idx == Params.ACTIVE_CHAIN_IDX:
             mine_interrupt.set()
 

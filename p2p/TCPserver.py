@@ -24,6 +24,7 @@ from params.Params import Params
 from p2p.Message import Message
 
 from p2p.Peer import Peer
+from p2p.PeerManager import PeerManager
 from ds.BaseUTXO_Set import BaseUTXO_Set
 from ds.BaseMemPool import BaseMemPool
 from ds.BlockChain import BlockChain
@@ -44,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     def __init__(self, ip_port, tcp_handler_class, active_chain: BlockChain, side_branches: Iterable[BlockChain], \
-                 orphan_blocks: Iterable[Block], utxo_set: BaseUTXO_Set, mempool: BaseMemPool, peers: Iterable[Peer], \
+                 orphan_blocks: Iterable[Block], utxo_set: BaseUTXO_Set, mempool: BaseMemPool, peerManager: PeerManager, \
                  mine_interrupt: threading.Event, ibd_done: threading.Event, chain_lock: _thread.RLock, \
                  peers_lock: _thread.RLock):
 
@@ -54,7 +55,9 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
         self.orphan_blocks = orphan_blocks
         self.utxo_set = utxo_set
         self.mempool = mempool
-        self.peers = peers
+        #self.peers = peers
+        self.peerManager = peerManager
+
         self.mine_interrupt = mine_interrupt
         self.ibd_done = ibd_done
         self.chain_lock = chain_lock
@@ -74,7 +77,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         self.orphan_blocks = self.server.orphan_blocks
         self.utxo_set = self.server.utxo_set
         self.mempool = self.server.mempool
-        self.peers = self.server.peers
+        self.peerManager = self.server.peerManager
         self.mine_interrupt = self.server.mine_interrupt
         self.ibd_done = self.server.ibd_done
         self.chain_lock = self.server.chain_lock
@@ -104,12 +107,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
             return
         else:
             peer = Peer(str(self.request.getpeername()[0]), int(message.port))
-            #if peer == Peer('127.0.0.1', Params.PORT_CURRENT) or \
-            #    peer == Peer('localhost', Params.PORT_CURRENT) or \
-            #        peer.ip == '0.0.0.0' or \
-            #        peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
-            #    logger.info(f'[p2p] new found {peer} is the current node itself, and does nothing for it')
-            #    return
+
 
 
 
@@ -177,16 +175,14 @@ class TCPHandler(socketserver.BaseRequestHandler):
         message = Message(Actions.BlocksSyncGet, blocks, Params.PORT_CURRENT)
         self.request.sendall(Utils.encode_socket_data(message))
 
-        if (peer not in self.peers) and not (peer == Peer('127.0.0.1', Params.PORT_CURRENT) or \
+        if (peer not in self.peerManager.getPeers()) and not (peer == Peer('127.0.0.1', Params.PORT_CURRENT) or \
                 peer == Peer('localhost', Params.PORT_CURRENT) or \
                     peer.ip == '0.0.0.0' or \
                     peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT)):
 
             if Utils.is_peer_valid(peer):
                 with self.peers_lock:
-                    self.peers.append(peer)
-                logger.info(f'[p2p] add peer {peer} into peer list')
-                Peer.save_peers(self.peers)
+                    self.peerManager.add(peer)
                 self.sendPeerExtend()
 
     def handleTopBlockSyncReq(self, topN: int, peer: Peer):
@@ -199,7 +195,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         logger.info(f"[p2p] sent {len(blocks)} blocks in handleTopBlockSyncReq to {peer}")
 
         if ret is None:
-            if peer not in self.peers:
+            if peer not in self.peerManager.getPeers():
                 if peer== Peer('127.0.0.1', Params.PORT_CURRENT) or \
                                 peer == Peer('localhost', Params.PORT_CURRENT) or \
                                     peer.ip == '0.0.0.0' or \
@@ -207,9 +203,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     return
                 if Utils.is_peer_valid(peer):
                     with self.peers_lock:
-                        self.peers.append(peer)
-                    logger.info(f'[p2p] add peer {peer} into peer list')
-                    Peer.save_peers(self.peers)
+                        self.peerManager.add(peer)#self.peers.append(peer)
+                    #Peer.save_peers(self.peers)
                     self.sendPeerExtend()
 
     def handleTopBlockReq(self, peer: Peer):
@@ -222,7 +217,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
         if ret is None:
         #if self.request.sendall(Utils.encode_socket_data(message)) is None:
-            if peer not in self.peers:
+            if peer not in self.peerManager.getPeers():
                 if peer== Peer('127.0.0.1', Params.PORT_CURRENT) or \
                                 peer == Peer('localhost', Params.PORT_CURRENT) or \
                                     peer.ip == '0.0.0.0' or \
@@ -230,9 +225,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     return
                 if Utils.is_peer_valid(peer):
                     with self.peers_lock:
-                        self.peers.append(peer)
-                    logger.info(f'[p2p] add peer {peer} into peer list')
-                    Peer.save_peers(self.peers)
+                        self.peerManager.add(peer)#self.peers.append(peer)
+                    #logger.info(f'[p2p] add peer {peer} into peer list')
+                    #Peer.save_peers(self.peers)
                     self.sendPeerExtend()
 
     def handleBlockSyncGet(self, blocks: Iterable[Block], peer: Peer):
@@ -270,7 +265,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
                 if chain_idx is not None and chain_idx >= 0:
                     if not TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, self.side_branches, \
-                                                    self.mempool, self.utxo_set, self.mine_interrupt, self.peers):
+                                                    self.mempool, self.utxo_set, self.mine_interrupt):
                         #logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockSyncGet')
                         return
                 elif chain_idx is not None and chain_idx <= -1:
@@ -290,7 +285,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         message = Message(Actions.BlocksSyncReq, new_tip_id, Params.PORT_CURRENT)
 
 
-        if peer not in self.peers:
+        if peer not in self.peerManager.getPeers():
             if peer== Peer('127.0.0.1', Params.PORT_CURRENT) or \
                             peer == Peer('localhost', Params.PORT_CURRENT) or \
                                 peer.ip == '0.0.0.0' or \
@@ -298,14 +293,15 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 return
             if Utils.is_peer_valid(peer):
                 with self.peers_lock:
-                    self.peers.append(peer)
-                logger.info(f'[p2p] add peer {peer} into peer list')
-                Peer.save_peers(self.peers)
+                    self.peerManager.add(peer)#self.peers.append(peer)
+                #logger.info(f'[p2p] add peer {peer} into peer list')
+                #Peer.save_peers(self.peers)
                 self.sendPeerExtend()
 
         if peer == Peer('127.0.0.1', Params.PORT_CURRENT):
-            if len(self.peers) > 0:
-                peer = random.sample(self.peers,1)[0]
+            peers = self.peerManager.getPeers()
+            if len(peers) > 0:
+                peer = random.sample(peers,1)[0]
             else:
                 return
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #socket.create_connection(peer(), timeout=25) as s:
@@ -383,20 +379,25 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 mempool_ret = self.mempool.add_txn_to_mempool(txn, self.utxo_set)
                 #logger.info(f'####### out of chain_lock: {chain_use_id} of handleTxRev')
             if mempool_ret:
-                if len(self.peers) > 0:
-                    for _peer in random.sample(self.peers, min(len(self.peers),5)):
+                peers = self.peerManager.getPeers()
+                if len(peers) > 0:
+                    for _peer in random.sample(peers, min(len(peers),5)):
                         if _peer != peer:
                             ret = Utils.send_to_peer(Message(Actions.TxRev, txn, Params.PORT_CURRENT), _peer)
                             if ret == 1:
-                                if _peer in self.peers:
+                                if _peer in peers:
                                     try:
                                         with self.peers_lock:
-                                            self.peers.remove(_peer)
+                                            self.peerManager.remove(_peer)#self.peers.remove(_peer)
                                     except:
                                         pass
-                                    else:
-                                        Peer.save_peers(self.peers)
-                                        logger.info(f'remove dead peer {_peer}')
+
+                            elif ret != 0:
+                                with self.peers_lock:
+                                    self.peerManager.addLog(_peer, 1)
+                            else:
+                                with self.peers_lock:
+                                    self.peerManager.addLog(_peer, 0)
             else:
                 logger.info(f"[p2p] received txn {txn.id}, but validate failed.")
 
@@ -418,7 +419,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 ret_outside_lock = False
                 if chain_idx is not None and chain_idx >= 0:
                     ret_outside_lock = TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, self.side_branches, \
-                                                       self.mempool, self.utxo_set, self.mine_interrupt, self.peers)
+                                                       self.mempool, self.utxo_set, self.mine_interrupt)
                     if not ret_outside_lock:
                         #logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockRev')
                         return
@@ -432,20 +433,25 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     Persistence.save_to_disk(self.active_chain)
 
             if chain_idx is not None and chain_idx >= 0:
-                if len(self.peers) > 0:
-                    for _peer in random.sample(self.peers, min(len(self.peers),5)):
+                peers = self.peerManager.getPeers()
+                if len(peers) > 0:
+                    for _peer in random.sample(peers, min(len(peers),5)):
                         if _peer != peer:
                             ret = Utils.send_to_peer(Message(Actions.BlockRev, block, Params.PORT_CURRENT), _peer)
                             if ret == 1:
-                                if _peer in self.peers:
+                                if _peer in peers:
                                     try:
                                         with self.peers_lock:
-                                            self.peers.remove(_peer)
+                                            self.peerManager.remove(_peer)
                                     except:
                                         pass
-                                    else:
-                                        Peer.save_peers(self.peers)
-                                        logger.info(f'[p2p] remove dead peer {_peer}')
+                            elif ret != 0:
+                                with self.peers_lock:
+                                    self.peerManager.addLog(_peer, 1)
+                            else:
+                                with self.peers_lock:
+                                    self.peerManager.addLog(_peer, 0)
+
                 self.sendPeerExtend()
 
             elif chain_idx is None:
@@ -454,7 +460,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 #case of orphan block
                 message = Message(Actions.TopBlocksSyncReq, 50, Params.PORT_CURRENT)
                 if peer == Peer('127.0.0.1', Params.PORT_CURRENT):
-                    peer = random.sample(self.peers,1)[0]
+                    peer = random.sample(self.peerManager.getPeers(),1)[0]
+
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:#socket.create_connection(peer(), timeout=25) as s:
                     s.connect(peer())
                     s.sendall(Utils.encode_socket_data(message))
@@ -496,19 +503,18 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     peer_sample.ip == '0.0.0.0' or \
                     peer_sample == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
                 continue
-            if peer_sample in self.peers:
+            if peer_sample in self.peerManager.getPeers():
                 continue
             if Utils.is_peer_valid(peer_sample):
                 with self.peers_lock:
-                    self.peers.append(peer_sample)
-                logger.info(f'[p2p] add peer {peer_sample} into peer list')
-                Peer.save_peers(self.peers)
+                    self.peerManager.add(peer_sample)
+                #logger.info(f'[p2p] add peer {peer_sample} into peer list')
+                #Peer.save_peers(self.peers)
 
 
     @classmethod
     def do_connect_block_and_after(cls, block: Block, chain_idx, active_chain: BlockChain, side_branches: Iterable[BlockChain], \
-                                mempool: BaseMemPool, utxo_set: BaseUTXO_Set, mine_interrupt: threading.Event, \
-                                peers: Iterable[Peer]) -> bool:
+                                mempool: BaseMemPool, utxo_set: BaseUTXO_Set, mine_interrupt: threading.Event) -> bool:
         if int(chain_idx) == int(Params.ACTIVE_CHAIN_IDX):
             if block.block_subsidy_fees != Block.get_block_subsidy(active_chain) + block.calculate_fees(utxo_set):
                 #logger.info(f'{block.block_subsidy_fees} != {Block.get_block_subsidy(active_chain)} + {block.calculate_fees(utxo_set)}')
@@ -520,11 +526,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 pass
             connect_block_success = active_chain.connect_block(block, active_chain, \
                                                     side_branches, \
-                                    mempool, utxo_set, mine_interrupt, peers)
+                                    mempool, utxo_set, mine_interrupt)
         else:
             connect_block_success = side_branches[chain_idx-1].connect_block(block, \
                                              active_chain, side_branches, \
-                                    mempool, utxo_set, mine_interrupt, peers)
+                                    mempool, utxo_set, mine_interrupt)
 
         if connect_block_success is not False:
 
@@ -627,21 +633,25 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
     def sendPeerExtend(self):
-        if len(self.peers) > 0:
-            for _peer in self.peers:
+        peers = self.peerManager.getPeers()
+        if len(peers) > 0:
+            for _peer in peers:
                 if random.random() < 0.2:
                     continue
-                peer_samples = random.sample(self.peers, min(5, len(self.peers)))
+                peer_samples = random.sample(peers, min(5, len(peers)))
                 #logger.info(f"[p2p] sending {len(peer_samples)} peers to {_peer}")
                 ret = Utils.send_to_peer(Message(Actions.PeerExtend, peer_samples, Params.PORT_CURRENT), _peer)
                 if ret == 1:
-                    if _peer in self.peers:
+                    if _peer in peers:
                         try:
                             with self.peers_lock:
-                                self.peers.remove(_peer)
+                                self.peerManager.remove(_peer)
                         except:
                             pass
-                        else:
-                            Peer.save_peers(self.peers)
-                            logger.info(f'remove dead peer {_peer}')
                         return
+                elif ret != 0:
+                    with self.peers_lock:
+                        self.peerManager.addLog(_peer, 1)
+                else:
+                    with self.peers_lock:
+                        self.peerManager.addLog(_peer, 0)

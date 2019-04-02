@@ -38,6 +38,7 @@ from wallet.Wallet import Wallet
 from p2p.Message import Message
 from p2p.Message import Actions
 from p2p.Peer import Peer
+from p2p.PeerManager import PeerManager
 from p2p.TCPserver import (ThreadedTCPServer, TCPHandler)
 
 
@@ -63,7 +64,9 @@ class EdgenceChain(object):
         self.utxo_set: UTXO_Set = UTXO_Set()
         self.mempool: MemPool = MemPool()
         self.wallet: Wallet = Wallet.init_wallet(Params.WALLET_FILE)
-        self.peers: Iterable[Peer] = Peer.init_peers(Params.PEERS_FILE)
+
+        #self.peers: Iterable[Peer] = Peer.init_peers(Params.PEERS_FILE)
+        self.peerManager: PeerManager = PeerManager(Peer.init_peers(Params.PEERS_FILE))
 
         self.mine_interrupt: threading.Event = threading.Event()
         self.ibd_done: threading.Event = threading.Event()
@@ -132,9 +135,10 @@ class EdgenceChain(object):
 
     def initial_block_download(self):
         self.ibd_done.clear()
-        if self.peers:
-            logger.info(f'start initial block download from {len(self.peers)} peers')
-            peer_sample = random.sample(self.peers, min(len(self.peers),6))
+        peers = self.peerManager.getPeers()
+        if peers:
+            logger.info(f'start initial block download from {len(peers)} peers')
+            peer_sample = random.sample(peers, min(len(peers),6))
 
             message = Message(Actions.BlocksSyncReq, self.active_chain.chain[-1].id, Params.PORT_CURRENT)
             for peer in peer_sample:
@@ -168,16 +172,13 @@ class EdgenceChain(object):
                     else:
                         logger.info(f'[EdgenceChain] recv nothing from peer {peer}')
                 except Exception as e:
-                    logger.exception(f'Error: {repr(e)}, and remove dead peer {peer}')
-                    if peer in self.peers:
+                    #logger.exception(f'Error: {repr(e)}, and remove dead peer {peer}')
+                    if peer in peers:
                         try:
                             with self.peers_lock:
-                                self.peers.remove(peer)
+                                self.peerManager.addLog(peer, 1)
                         except:
                             pass
-                        else:
-                            Peer.save_peers(self.peers)
-                            logger.info(f'remove dead peer {peer}')
 
         else:
             logger.info(f'no peer nodes existed, ibd_done is set')
@@ -198,18 +199,19 @@ class EdgenceChain(object):
                 block = self.assemble_and_solve_block()
 
                 if block:
-                    for _peer in self.peers:
+                    peers = self.peerManager.getPeers()
+                    for _peer in peers:
                         ret = Utils.send_to_peer(Message(Actions.BlockRev, block, Params.PORT_CURRENT), _peer)
                         if ret == 1:
-                            if _peer in self.peers:
-                                try:
-                                    with self.peers_lock:
-                                        self.peers.remove(_peer)
-                                except:
-                                    pass
-                                else:
-                                    Peer.save_peers(self.peers)
-                                    logger.info(f'remove dead peer {_peer}')
+                            if _peer in peers:
+                                with self.peers_lock:
+                                    self.peerManager.remove(_peer)
+                        elif ret != 0:
+                            with self.peers_lock:
+                                self.peerManager.addLog(_peer, 1)
+                        else:
+                            with self.peers_lock:
+                                self.peerManager.addLog(_peer, 0)
 
 
                     #ret_outside_chain = False
@@ -224,7 +226,7 @@ class EdgenceChain(object):
                         if chain_idx is not None and chain_idx >= 0:
                             ret_outside_lock = TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, \
                                                                   self.side_branches, self.mempool, \
-                                                           self.utxo_set, self.mine_interrupt, self.peers)
+                                                           self.utxo_set, self.mine_interrupt)
                         #logger.info(f'####### out of chain_lock: {chain_use_id} of mine_forever')
                     if ret_outside_lock is True:
                         if len(self.active_chain.chain) % Params.SAVE_PER_SIZE == 0 or len(self.active_chain.chain) <= 5:
@@ -249,10 +251,8 @@ class EdgenceChain(object):
 
                 try:
                     time.sleep(Params.TIME_BETWEEN_BLOCKS_IN_SECS_TARGET*0.9)
-                    self.peers = list(set(self.peers))
-                    Peer.save_peers(self.peers)
 
-                    peer = random.sample(self.peers, 1)[0]
+                    peer = random.sample(self.peerManager.getPeers(), 1)[0]
                     message = Message(Actions.TopBlockReq, None, Params.PORT_CURRENT)
 
 
@@ -283,7 +283,7 @@ class EdgenceChain(object):
                         logger.info(f'[EdgenceChain] recv nothing from peer {peer}')
 
                 except:
-                    pass
+                    self.peerManager.addLog(peer, 1)
 
 
         # single thread mode, no need for thread lock
@@ -293,7 +293,7 @@ class EdgenceChain(object):
         workers = []
 
         server = ThreadedTCPServer(('0.0.0.0', Params.PORT_CURRENT), TCPHandler, self.active_chain, self.side_branches,\
-                                   self.orphan_blocks, self.utxo_set, self.mempool, self.peers, self.mine_interrupt, \
+                                   self.orphan_blocks, self.utxo_set, self.mempool, self.peerManager, self.mine_interrupt, \
                                               self.ibd_done, self.chain_lock, self.peers_lock)
         start_worker(workers, server.serve_forever)
 
