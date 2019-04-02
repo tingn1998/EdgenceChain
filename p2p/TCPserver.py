@@ -380,13 +380,23 @@ class TCPHandler(socketserver.BaseRequestHandler):
             with self.chain_lock:
                 #chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
                 #logger.info(f'####### into chain_lock: {chain_use_id} of handleTxRev')
-                ret = self.mempool.add_txn_to_mempool(txn, self.utxo_set)
+                mempool_ret = self.mempool.add_txn_to_mempool(txn, self.utxo_set)
                 #logger.info(f'####### out of chain_lock: {chain_use_id} of handleTxRev')
-            if ret:
+            if mempool_ret:
                 if len(self.peers) > 0:
                     for _peer in random.sample(self.peers, min(len(self.peers),5)):
                         if _peer != peer:
-                            Utils.send_to_peer(Message(Actions.TxRev, txn, Params.PORT_CURRENT), _peer)
+                            ret = Utils.send_to_peer(Message(Actions.TxRev, txn, Params.PORT_CURRENT), _peer)
+                            if ret == 1:
+                                if _peer in self.peers:
+                                    try:
+                                        with self.peers_lock:
+                                            self.peers.remove(_peer)
+                                    except:
+                                        pass
+                                    else:
+                                        Peer.save_peers(self.peers)
+                                        logger.info(f'remove dead peer {_peer}')
             else:
                 logger.info(f"[p2p] received txn {txn.id}, but validate failed.")
 
@@ -522,7 +532,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 logger.info(f'[p2p] a successful reorg is found, begin to deal with {len(side_branches)} side branches')
 
                 for branch_chain in side_branches:
-                    logger.info(f'[p2p] number of blocks before slim side branch: {len(branch_chain.chain)}')
+                    #logger.info(f'[p2p] number of blocks before slim side branch: {len(branch_chain.chain)}')
 
                     #TCPHandler.printBlockchainIDs(branch_chain, '[p2p] side branch removed from active chain ')
 
@@ -544,7 +554,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     else:
                         for num_to_pop in range(1, branch_chain.height-fork_height_from_end):
                             branch_chain.chain.pop(0)
-                    logger.info(f'[p2p] number of blocks after slim side branch: {len(branch_chain.chain)}')
+                    #logger.info(f'[p2p] number of blocks after slim side branch: {len(branch_chain.chain)}')
 
 
             side_branches_to_discard = []
