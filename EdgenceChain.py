@@ -249,10 +249,11 @@ class EdgenceChain(object):
             logger.info(f'thread for request top block periodically....')
             while True:
 
+                peer = random.sample(self.peerManager.getPeers(), 1)[0]
                 try:
                     time.sleep(Params.TIME_BETWEEN_BLOCKS_IN_SECS_TARGET*0.9)
 
-                    peer = random.sample(self.peerManager.getPeers(), 1)[0]
+
                     message = Message(Actions.TopBlockReq, None, Params.PORT_CURRENT)
 
 
