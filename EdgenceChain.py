@@ -299,6 +299,7 @@ class EdgenceChain(object):
 
 
         self.initial_block_download()
+
         old_height = self.active_chain.height-0.5
         new_height = old_height+0.5
         while new_height > old_height:

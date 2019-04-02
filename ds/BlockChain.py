@@ -127,8 +127,7 @@ class BlockChain(BaseBlockChain):
                 branch_height_real = branch_chain.height + fork_height
 
                 if branch_height_real > active_height:
-                    logger.info(f'[ds] decide to reorg branch {branch_idx} with height {branch_height_real} to '
-                                f'active_chain with real height {active_height}')
+                    logger.info(f'[ds] decide to reorg branch {branch_idx} with height {branch_height_real} to active_chain with real height {active_height}')
                     reorged |= _do_reorg(branch_idx, side_branches, active_chain, fork_height, mempool, \
                                          utxo_set, mine_interrupt, peers)
                     if reorged is True:

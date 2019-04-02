@@ -155,26 +155,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
 
-    def sendPeerExtend(self):
-        if len(self.peers) > 0:
-            for _peer in self.peers:
-                if random.random() < 0.2:
-                    continue
-                peer_samples = random.sample(self.peers, min(5, len(self.peers)))
-                #logger.info(f"[p2p] sending {len(peer_samples)} peers to {_peer}")
-                ret = Utils.send_to_peer(Message(Actions.PeerExtend, peer_samples, Params.PORT_CURRENT), _peer)
-                if ret == 1:
-                    if _peer in self.peers:
-                        try:
-                            with self.peers_lock:
-                                self.peers.remove(_peer)
-                        except:
-                            pass
-                        else:
-                            Peer.save_peers(self.peers)
-                            logger.info(f'remove dead peer {_peer}')
-                        return
-
     def handleBlockSyncReq(self, blockid: str, peer: Peer):
 
         logger.info(f"[p2p] receive BlockSyncReq from peer {peer}")
@@ -208,7 +188,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 logger.info(f'[p2p] add peer {peer} into peer list')
                 Peer.save_peers(self.peers)
                 self.sendPeerExtend()
-
 
     def handleTopBlockSyncReq(self, topN: int, peer: Peer):
         #with self.chain_lock:
@@ -255,18 +234,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     logger.info(f'[p2p] add peer {peer} into peer list')
                     Peer.save_peers(self.peers)
                     self.sendPeerExtend()
-    @classmethod
-    def check_blocks_headers(cls, new_blocks: Iterable[Block]) -> bool:
-        for idx in range(len(new_blocks)-1):
-            block = new_blocks[idx]
-            if MerkleNode.get_merkle_root_of_txns(block.txns).val != block.merkle_hash:
-                logger.info(f'[p2p] check of block headers is a failure for not wrong merkle hash given')
-                return False
-            elif block.id != new_blocks[idx+1].prev_block_hash:
-                logger.info(f'[p2p] check of block headers is a failure for not consistent block hash: block.id is {block.id}, and prev_block hash is {new_blocks[idx+1].prev_block_hash}')
-                return False
-            else:
-                return True
 
     def handleBlockSyncGet(self, blocks: Iterable[Block], peer: Peer):
         if peer != Peer('127.0.0.1', Params.PORT_CURRENT):
@@ -366,8 +333,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
         else:
             logger.info(f'[p2p] recv nothing from peer {peer}')
 
-
-
     def handleTxStatusReq(self, txid: str, peer: Peer):
         def _txn_iterator(chain):
             return (
@@ -409,7 +374,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
         message = Message(Actions.Balance4AddrRev, val, Params.PORT_CURRENT)
         self.request.sendall(Utils.encode_socket_data(message))
 
-
     def handleTxRev(self, txn: Transaction, peer: Peer):
         if isinstance(txn, Transaction):
             logger.info(f"[p2p] received txn {txn.id} from peer {peer}")
@@ -429,7 +393,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
         else:
             logger.info(f'[p2p] {txn} is not a Transaction object in handleTxRev')
             return
-
 
     def handleBlockRev(self, block: Block, peer: Peer):
         if isinstance(block, Block):
@@ -511,12 +474,26 @@ class TCPHandler(socketserver.BaseRequestHandler):
         else:
             logger.info(f'[p2p] {block} is not a Block')
 
-    #@classmethod
-    #def printBlockchainIDs(cls, chain: BlockChain, inv: str = 'ID sequence of blockchain '):
-    #    new_branch_id = ''
-    #    for block in chain.chain:
-    #        new_branch_id += block.id[-10:]+' ,'
-    #    logger.info(f'{inv}: {new_branch_id}')
+    def handlePeerExtendGet(self, peer_samples: Iterable[Peer], peer: Peer):
+        #logger.info(f"[p2p] received {len(peer_samples)} peers from peer {peer}")
+        peer_samples.append(peer)
+        for peer_sample in peer_samples:
+            if not isinstance(peer_sample, Peer):
+                continue
+
+            if peer_sample == Peer('127.0.0.1', Params.PORT_CURRENT) or \
+                peer_sample == Peer('localhost', Params.PORT_CURRENT) or \
+                    peer_sample.ip == '0.0.0.0' or \
+                    peer_sample == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
+                continue
+            if peer_sample in self.peers:
+                continue
+            if Utils.is_peer_valid(peer_sample):
+                with self.peers_lock:
+                    self.peers.append(peer_sample)
+                logger.info(f'[p2p] add peer {peer_sample} into peer list')
+                Peer.save_peers(self.peers)
+
 
     @classmethod
     def do_connect_block_and_after(cls, block: Block, chain_idx, active_chain: BlockChain, side_branches: Iterable[BlockChain], \
@@ -584,7 +561,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 if active_chain.height - branch_height_real > Params.MAXIMUM_ALLOWABLE_HEIGHT_DIFF:
                     side_branches_to_discard.append(branch_chain)
             if len(side_branches_to_discard) > 0:
-                logger.info(f'[p2p] delete {len(side_branches_to_discard)} side branches beyond MAXIMUM_ALLOWABLE_HEIGHT_DIFF')
+                logger.info(f'[p2p] ## delete {len(side_branches_to_discard)} side branches beyond MAXIMUM_ALLOWABLE_HEIGHT_DIFF')
                 for branch_chain in side_branches_to_discard:
                     side_branches.remove(branch_chain)
             for index, branch_chain in enumerate(side_branches, 1):
@@ -620,28 +597,41 @@ class TCPHandler(socketserver.BaseRequestHandler):
             if prev_block_chain_idx != Params.ACTIVE_CHAIN_IDX: # branch of a branch
                 logger.info(f'[p2p] branch (idx {chain_idx}) of an existing side branch (idx {prev_block_chain_idx}) for block {block.id}')
                 branch_fork_height =  Block.locate_block(block.prev_block_hash, side_branches[prev_block_chain_idx-1])[1]
-                side_branches[chain_idx].chain = list(side_branches[prev_block_chain_idx-1].chain[:branch_fork_height])
+                side_branches[chain_idx-1].chain = list(side_branches[prev_block_chain_idx-1].chain[:branch_fork_height])
 
 
         return chain_idx
 
-    def handlePeerExtendGet(self, peer_samples: Iterable[Peer], peer: Peer):
-        #logger.info(f"[p2p] received {len(peer_samples)} peers from peer {peer}")
-        peer_samples.append(peer)
-        for peer_sample in peer_samples:
-            if not isinstance(peer_sample, Peer):
-                continue
+    @classmethod
+    def check_blocks_headers(cls, new_blocks: Iterable[Block]) -> bool:
+        for idx in range(len(new_blocks)-1):
+            block = new_blocks[idx]
+            if MerkleNode.get_merkle_root_of_txns(block.txns).val != block.merkle_hash:
+                logger.info(f'[p2p] check of block headers is a failure for not wrong merkle hash given')
+                return False
+            elif block.id != new_blocks[idx+1].prev_block_hash:
+                logger.info(f'[p2p] check of block headers is a failure for not consistent block hash: block.id is {block.id}, and prev_block hash is {new_blocks[idx+1].prev_block_hash}')
+                return False
+            else:
+                return True
 
-            if peer_sample == Peer('127.0.0.1', Params.PORT_CURRENT) or \
-                peer_sample == Peer('localhost', Params.PORT_CURRENT) or \
-                    peer_sample.ip == '0.0.0.0' or \
-                    peer_sample == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
-                continue
-            if peer_sample in self.peers:
-                continue
-            if Utils.is_peer_valid(peer_sample):
-                with self.peers_lock:
-                    self.peers.append(peer_sample)
-                logger.info(f'[p2p] add peer {peer_sample} into peer list')
-                Peer.save_peers(self.peers)
 
+    def sendPeerExtend(self):
+        if len(self.peers) > 0:
+            for _peer in self.peers:
+                if random.random() < 0.2:
+                    continue
+                peer_samples = random.sample(self.peers, min(5, len(self.peers)))
+                #logger.info(f"[p2p] sending {len(peer_samples)} peers to {_peer}")
+                ret = Utils.send_to_peer(Message(Actions.PeerExtend, peer_samples, Params.PORT_CURRENT), _peer)
+                if ret == 1:
+                    if _peer in self.peers:
+                        try:
+                            with self.peers_lock:
+                                self.peers.remove(_peer)
+                        except:
+                            pass
+                        else:
+                            Peer.save_peers(self.peers)
+                            logger.info(f'remove dead peer {_peer}')
+                        return
