@@ -336,19 +336,19 @@ class TCPHandler(socketserver.BaseRequestHandler):
         else:
             self.peerManager.addLog(peer, 0)
 
-        message = Utils.deserialize(data.decode(), self.gs) if data else None
-        if message:
-            logger.info(f'[p2p] received blocks from peer {peer}')
-            message = Message(message.action, message.data, Params.PORT_CURRENT, peer)
-            ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
-            if ret != 0:
-                logger.info(f'[p2p] cannot send data to itself, and its current port is {Params.PORT_CURRENT}')
-            else:
-                #logger.info(f'[p2p] send BlocksSyncGet to itself')
-                pass
+            message = Utils.deserialize(data.decode(), self.gs) if data else None
+            if message:
+                logger.info(f'[p2p] received blocks from peer {peer}')
+                message = Message(message.action, message.data, Params.PORT_CURRENT, peer)
+                ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
+                if ret != 0:
+                    logger.info(f'[p2p] cannot send data to itself, and its current port is {Params.PORT_CURRENT}')
+                else:
+                    #logger.info(f'[p2p] send BlocksSyncGet to itself')
+                    pass
 
-        else:
-            logger.info(f'[p2p] recv nothing from peer {peer}')
+            else:
+                logger.info(f'[p2p] recv nothing from peer {peer}')
 
     def handleTxStatusReq(self, txid: str, peer: Peer):
         def _txn_iterator(chain):
@@ -503,19 +503,19 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 else:
                     self.peerManager.addLog(peer, 0)
 
-                message = Utils.deserialize(data.decode(), self.gs) if data else None
-                if message:
-                    logger.info(f'[p2p] received blocks from peer {peer}')
-                    message = Message(message.action, message.data, Params.PORT_CURRENT, peer)
-                    ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
+                    message = Utils.deserialize(data.decode(), self.gs) if data else None
+                    if message:
+                        logger.info(f'[p2p] received blocks from peer {peer}')
+                        message = Message(message.action, message.data, Params.PORT_CURRENT, peer)
+                        ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
 
-                    if ret != 0:
-                        logger.info(f'[p2p] cannot send data to itself, and its current port is {Params.PORT_CURRENT}')
+                        if ret != 0:
+                            logger.info(f'[p2p] cannot send data to itself, and its current port is {Params.PORT_CURRENT}')
+                        else:
+                            #logger.info(f'[p2p] send BlocksSyncGet to itself')
+                            pass
                     else:
-                        #logger.info(f'[p2p] send BlocksSyncGet to itself')
-                        pass
-                else:
-                    logger.info(f'[p2p] recv nothing from peer {peer}')
+                        logger.info(f'[p2p] recv nothing from peer {peer}')
 
 
         else:
