@@ -270,6 +270,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         return
                 elif chain_idx is not None and chain_idx <= -1:
                     logger.info(f'[p2p] orphan or wrong block {block.id}')
+                    if peer != Peer('127.0.0.1', Params.PORT_CURRENT):
+                        with self.peers_lock:
+                            self.peerManager.block(peer)
+
                     break
                 else:
                     logger.info(f'[p2p] do nothing for block {block.id}')
