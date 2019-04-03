@@ -18,12 +18,12 @@ logging.basicConfig(
     format='[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
 
+
 class BlockChain(BaseBlockChain):
 
-    def __init__(self, idx: int=0, chain: Iterable[Block]=[]):
+    def __init__(self, idx: int = 0, chain: Iterable[Block] = []):
         self.index = idx
         self.chain = chain
-
 
     @property
     def height(self):
@@ -47,7 +47,6 @@ class BlockChain(BaseBlockChain):
                 txout = tx.txouts[txout_idx]
                 return (txout, tx, txout_idx, tx.is_coinbase, height)
 
-
     def disconnect_block(self, mempool: MemPool, utxo_set: UTXO_Set) -> Block:
 
         block = self.chain[-1]
@@ -65,20 +64,18 @@ class BlockChain(BaseBlockChain):
         logger.info(f'[ds] block {block.id} disconnected, recover transactions and UTXOs by it')
         return self.chain.pop()
 
-
     # return values of connect_block: 1. True means success but no reorg; 2. False means unsuccess; 3. -1 means success and reorg
-    def connect_block(self, block: Block, active_chain: BaseBlockChain, side_branches: Iterable[BaseBlockChain],\
-                      mempool: MemPool, utxo_set: UTXO_Set, mine_interrupt: threading.Event,\
+    def connect_block(self, block: Block, active_chain: BaseBlockChain, side_branches: Iterable[BaseBlockChain], \
+                      mempool: MemPool, utxo_set: UTXO_Set, mine_interrupt: threading.Event, \
                       peers: Iterable[Peer], doing_reorg=False) -> bool:
 
         def _reorg_and_succeed(active_chain: BaseBlockChain, side_branches: Iterable[BaseBlockChain], \
-                                mempool: MemPool, utxo_set:UTXO_Set, \
-                                mine_interrupt: threading.Event, peers: Iterable[Peer]) -> bool:
-
+                               mempool: MemPool, utxo_set: UTXO_Set, \
+                               mine_interrupt: threading.Event, peers: Iterable[Peer]) -> bool:
 
             def _do_reorg(branch_idx: int, side_branches: Iterable[BaseBlockChain], active_chain: BaseBlockChain, \
-                           fork_height: int, mempool: MemPool, utxo_set:UTXO_Set, \
-                           mine_interrupt: threading.Event, peers: Iterable[Peer]) -> bool:
+                          fork_height: int, mempool: MemPool, utxo_set: UTXO_Set, \
+                          mine_interrupt: threading.Event, peers: Iterable[Peer]) -> bool:
 
                 branch_chain = side_branches[branch_idx - 1]
 
@@ -104,7 +101,6 @@ class BlockChain(BaseBlockChain):
                 for block in branch_chain.chain:
                     if not active_chain.connect_block(block, active_chain, side_branches, mempool, utxo_set, \
                                                       mine_interrupt, peers, doing_reorg=True):
-
                         logger.info(f'[ds] reorg of branch {branch_idx} to active_chain failed, decide to rollback')
                         rollback_reorg()
                         return False
@@ -117,8 +113,6 @@ class BlockChain(BaseBlockChain):
                             f'top block id {active_chain.chain[-1].id}')
 
                 return True
-
-
 
             reorged = False
             frozen_side_branches = list(side_branches)
@@ -137,13 +131,10 @@ class BlockChain(BaseBlockChain):
 
             return reorged
 
-
-
         logger.info(f'[ds] connecting block {block.id} to chain with index: {self.idx}')
         self.chain.append(block)
         # If we added to the active chain, perform upkeep on utxo_set and mempool.
         if self.idx == Params.ACTIVE_CHAIN_IDX:
-
 
             for tx in block.txns:
                 mempool.mempool.pop(tx.id, None)
@@ -154,17 +145,11 @@ class BlockChain(BaseBlockChain):
                 for i, txout in enumerate(tx.txouts):
                     utxo_set.add_to_utxo(txout, tx, i, tx.is_coinbase, self.height)
 
-
         reorg_and_succeed = False
         if doing_reorg == False:
-            reorg_and_succeed = _reorg_and_succeed(active_chain, side_branches, mempool, utxo_set, mine_interrupt, peers)
+            reorg_and_succeed = _reorg_and_succeed(active_chain, side_branches, mempool, utxo_set, mine_interrupt,
+                                                   peers)
         if reorg_and_succeed or self.idx == Params.ACTIVE_CHAIN_IDX:
             mine_interrupt.set()
 
-
         return -1 if reorg_and_succeed else True
-
-
-
-
-

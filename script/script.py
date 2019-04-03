@@ -13,10 +13,10 @@ logging.basicConfig(
     format='[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
 
-# two main classes
+# two main classes in this package
 __all__ = ['Script', 'Tokenizer']
 
-# Convenient constants used to set the result of the stack process
+# Convenient constants used to set the result of stack computing process
 Zero = ByteVector.from_value(0)
 One = ByteVector.from_value(1)
 
@@ -47,11 +47,6 @@ def _is_hash256(opcode, bytes, data) -> bool:
         return False
     return True
 
-
-def _too_long(opcode, bytes, data) -> bool:
-    return False
-
-
 # —————————————————————Script verify templates——————————————————————
 
 SCRIPT_FORM_NON_STANDARD = 'non-standard'
@@ -80,7 +75,9 @@ Templates = [
 
     (SCRIPT_FORM_PAY_TO_PUBKEY, TEMPLATE_PAY_TO_PUBKEY),
 
-
+    #    (SCRIPT_FORM_TRANSACTION_PUZZLE_HASH256,
+    #     (lambda t: len(t) == 3,
+    #      opcodes.OP_HASH256, _is_hash256, opcodes.OP_EQUAL)),
 ]
 
 # ——————————————————————stack functions—————————————————————————
@@ -164,7 +161,6 @@ def _hash_op(stack, func) -> bool:
     stack.append(ByteVector(value))
 
     return True
-
 
 # ————————————————————process the signature—————————————————————————
 
@@ -309,7 +305,7 @@ class Tokenizer(object):
 
         while script:
 
-            # process one code from script
+            # process one code from scripts every time
             opcode = ord(script[0])
             bytes = script[0]
             script = script[1:]
@@ -391,6 +387,24 @@ class Script(object):
     def input_count(self) -> int:
         return len(self._transaction.inputs)
 
+    # matching the template(P2PKH or P2PK)
+    def script_form(self, output_index) -> str:
+        pk_script = self._transaction.outputs[output_index].pk_script
+        tokens = Tokenizer(pk_script)
+        for (sf, template) in Templates:
+            if tokens.match_template(template):
+                return sf
+        return SCRIPT_FORM_NON_STANDARD
+
+    # should I use this?(@author ljq)
+    def is_standard_script(self, output_index) -> bool:
+        pk_script = self._transaction.outputs[output_index]
+        tokens = Tokenizer(pk_script, expand_verify=False)
+        for sf in STANDARD_SCRIPT_FORMS:
+            if tokens.match_template(Templates[sf]):
+                return True
+        return False
+
     @property
     def output_count(self) -> int:
         return len(self._transaction.outputs)
@@ -405,11 +419,11 @@ class Script(object):
         # matching the template(P2PKH or P2PK)
         if tokens.match_template(TEMPLATE_PAY_TO_PUBKEY_HASH):
             pubkeyhash = tokens.get_value(2).vector
-            return util.key.pubkeyhash_to_address(pubkeyhash, self._coin.address_version)
+            return scriptUtils.pubkeyhash_to_address(pubkeyhash, self._coin.address_version)
 
         if tokens.match_template(TEMPLATE_PAY_TO_PUBKEY):
             pubkey = tokens.get_value(0).vector
-            return util.key.publickey_to_address(pubkey, self._coin.address_version)
+            return scriptUtils.publickey_to_address(pubkey, self._coin.address_version)
 
         return None
 
@@ -426,50 +440,31 @@ class Script(object):
 
         for i in range(0, len(self._transaction.inputs)):
 
-            # ignore coinbase (generation transaction input)
-            if self._transaction.index == 0 and i == 0: continue
+            # ignore the coin_base (generation transaction input)
+            if self._transaction.index == 0 and i == 0:
+                continue
 
             # verify the input with its previous output
-            previous_output = self._transaction.previous_output(i)  # 只要取得前向输入就可以
-            if not self.verify_input(i, previous_output.pk_script):
-                # print "INVALID:", self._transaction.hash.encode('hex'), i
+            previous_output = self._transaction.previous_output(i)
+            if not self.verify_input(i, previous_output.pk_script): # get the previous output's pk_script
+                # print "INVALID:", self._transaction.hash.encode('hex'), i # check for this
                 logger.exception(f'[script] script verification wrong in Script part!')
                 return False
 
         return True
 
-    # matching the template(P2PKH or P2PK)
-    def script_form(self, output_index) -> str:
-        pk_script = self._transaction.outputs[output_index].pk_script
-        tokens = Tokenizer(pk_script)
-        for (sf, template) in Templates:
-            if tokens.match_template(template):
-                return sf
-        return SCRIPT_FORM_NON_STANDARD
-
-    # should I use this?(ljq)
-    def is_standard_script(self, output_index) -> bool:
-        pk_script = self._transaction.outputs[output_index]
-        tokens = Tokenizer(pk_script, expand_verify=False)
-        for sf in STANDARD_SCRIPT_FORMS:
-            if tokens.match_template(Templates[sf]):
-                return True
-        return False
-
     # Notice: lots of the process in the method is a regular process of bit-coin script language
     @staticmethod
     def process(signature_script, pk_script, transaction, input_index, hash_type=0):
 
-        @TODO
         # tokenize (placing the last code separator after the signature script)
         # (input.signature_script）
         tokens = Tokenizer(signature_script, expand_verify=True)
         signature_length = len(tokens)
-        # (previous_output.pk_script）
-        tokens.append(pk_script)
-
         # counting the length of tokens which contains two kind of scripts
         last_codeseparator = signature_length
+        # (previous_output.pk_script）
+        tokens.append(pk_script)
 
 
         # check for VERY forbidden opcodes (see "reserved Words" on the wiki)
@@ -756,8 +751,7 @@ class Script(object):
                 else:
                     stack.append(Zero)
 
-            # check for the Muti-process
-
+            # This part checks the opcode for Muti-process
             # We don't use this part due to our plan
             # and it's easy to add this part.
             elif opcode == opcodes.OP_CHECKMULTISIG:
