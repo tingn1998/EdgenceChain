@@ -59,6 +59,8 @@ class PeerManager(object):
                 if not not_success and peerstate.isBlocked == True:
                     self.peerstate_list[idx] = self.peerstate_list[idx]._replace(isBlocked=False)
                 self.peerstate_list.sort(key = operator.attrgetter('isBlocked', 'count_1'))
+                logger.info(f'add log of result {not_success} from connecting to {peer}')
+
 
 
     def add(self, peer: Peer)->None:
