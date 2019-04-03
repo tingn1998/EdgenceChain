@@ -64,7 +64,9 @@ class BlockChain(BaseBlockChain):
         logger.info(f'[ds] block {block.id} disconnected, recover transactions and UTXOs by it')
         return self.chain.pop()
 
-    # return values of connect_block: 1. True means success but no reorg; 2. False means unsuccess; 3. -1 means success and reorg
+    # return values of connect_block: 1. True means success but no reorg;
+    # 2. False means unsuccess;
+    # 3. -1 means success and reorg
     def connect_block(self, block: Block, active_chain: BaseBlockChain, side_branches: Iterable[BaseBlockChain], \
                       mempool: MemPool, utxo_set: UTXO_Set, mine_interrupt: threading.Event, \
                       peers: Iterable[Peer], doing_reorg=False) -> bool:
@@ -136,6 +138,7 @@ class BlockChain(BaseBlockChain):
         # If we added to the active chain, perform upkeep on utxo_set and mempool.
         if self.idx == Params.ACTIVE_CHAIN_IDX:
 
+            # update the utxo using the txn in one block and delete it from mempool.
             for tx in block.txns:
                 mempool.mempool.pop(tx.id, None)
 

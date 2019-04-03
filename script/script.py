@@ -20,6 +20,7 @@ __all__ = ['Script', 'Tokenizer']
 Zero = ByteVector.from_value(0)
 One = ByteVector.from_value(1)
 
+
 # ————————————————————tool functions———————————————————————
 
 # check whether the opcode is a publickey for P2PK
@@ -46,6 +47,7 @@ def _is_hash256(opcode, bytes, data) -> bool:
     if len(data) != 32:
         return False
     return True
+
 
 # —————————————————————Script verify templates——————————————————————
 
@@ -79,6 +81,7 @@ Templates = [
     #     (lambda t: len(t) == 3,
     #      opcodes.OP_HASH256, _is_hash256, opcodes.OP_EQUAL)),
 ]
+
 
 # ——————————————————————stack functions—————————————————————————
 
@@ -115,7 +118,6 @@ def _math_op(stack, func, check_overflow=True) -> bool:
        A boolean result will push either a 0 or 1 on the stack. None will push
        nothing.Otherwise, the result must be a ByteVector!!!
     """
-
 
     # not enough arguments
     count = len(inspect.getfullargspec(func).args)
@@ -162,6 +164,7 @@ def _hash_op(stack, func) -> bool:
 
     return True
 
+
 # ————————————————————process the signature—————————————————————————
 
 def check_signature(signature, public_key, hash_type, subscript, transaction, input_index) -> bool:
@@ -179,7 +182,7 @@ def check_signature(signature, public_key, hash_type, subscript, transaction, in
         for (index, tx_in) in enumerate(transaction.inputs):
             script = ''
             if index == input_index:
-                script = subscript # find the
+                script = subscript  # find the
 
             # form the new tx_ins
             tx_in = protocol.TxnIn(tx_in.previous_output, script, tx_in.sequence)
@@ -208,27 +211,21 @@ def check_signature(signature, public_key, hash_type, subscript, transaction, in
     # ——————————————compute the data to verify————————————————
 
     # compute the hash value of the signature
-    sig_hash = struct.pack('<I', hash_type) # str type
+    sig_hash = struct.pack('<I', hash_type)  # str type
 
     # rebuild the data
     payload = tx_copy.binary() + sig_hash
 
-    return # verify process
-
-
-# this class is used to form a output using the outputs' template
-# identical to the main Txn except it allows zero tx_out for SIGHASH_NONE!!!
-class FlexTxn(protocol.Txn):
-    @TODO
+    return  # verify process
 
 
 # ————————————————————tool class producing tokens[]——————————————————————————
 
 # test examples:
-    # txid: 370b0e8298cf00b47a61ebac3381d38f38f62b065ef5d8dd3cfd243e4b6e9137 (input# 0)
-    # >>> pk_script = 'v\xa9\x14\xd6Kqr\x9aPM#\xd9H\x88\xd3\xf7\x12\xd5WS\xd5\xd6"\x88\xac'
-    # >>> print pycoind.Tokenizer(pk_script)
-    # OP_DUP OP_HASH160 d64b71729a504d23d94888d3f712d55753d5d622 OP_EQUALVERIFY OP_CHECKSIG
+# txid: 370b0e8298cf00b47a61ebac3381d38f38f62b065ef5d8dd3cfd243e4b6e9137 (input# 0)
+# >>> pk_script = 'v\xa9\x14\xd6Kqr\x9aPM#\xd9H\x88\xd3\xf7\x12\xd5WS\xd5\xd6"\x88\xac'
+# >>> print pycoind.Tokenizer(pk_script)
+# OP_DUP OP_HASH160 d64b71729a504d23d94888d3f712d55753d5d622 OP_EQUALVERIFY OP_CHECKSIG
 
 
 class Tokenizer(object):
@@ -249,7 +246,6 @@ class Tokenizer(object):
     def append(self, script):
         self._script += script
         self._process(script)
-
 
     # map used to check the final opcode.
     _Verify = {
@@ -326,7 +322,7 @@ class Tokenizer(object):
                     format = ['<B', '<H', '<I'][opcode - opcodes.OP_PUSHDATA1]
                     length = struct.unpack(format, script[:op_length])[0]
                     bytes += script[:op_length]
-                    script = script[op_length:] # pop the data from script by length
+                    script = script[op_length:]  # pop the data from script by length
 
                 value = ByteVector(vector=script[:length])
                 bytes += script[:length]
@@ -377,12 +373,14 @@ class Tokenizer(object):
 
         return " ".join(output)
 
+
 # —————————————————————— main stack Process————————————————————
 
 class Script(object):
 
-    def __init__(self, transaction):
+    def __init__(self, transaction,  mempool):
         self._transaction = transaction
+        self._mempool = mempool
 
     def input_count(self) -> int:
         return len(self._transaction.inputs)
@@ -446,7 +444,7 @@ class Script(object):
 
             # verify the input with its previous output
             previous_output = self._transaction.previous_output(i)
-            if not self.verify_input(i, previous_output.pk_script): # get the previous output's pk_script
+            if not self.verify_input(i, previous_output.pk_script):  # get the previous output's pk_script
                 # print "INVALID:", self._transaction.hash.encode('hex'), i # check for this
                 logger.exception(f'[script] script verification wrong in Script part!')
                 return False
@@ -465,7 +463,6 @@ class Script(object):
         last_codeseparator = signature_length
         # (previous_output.pk_script）
         tokens.append(pk_script)
-
 
         # check for VERY forbidden opcodes (see "reserved Words" on the wiki)
         for token in tokens:
@@ -747,7 +744,7 @@ class Script(object):
                 valid = check_signature(signature, public_key, hash_type, subscript, transaction, input_index)
 
                 if valid:
-                    stack.append(One) # the verify process is successful
+                    stack.append(One)  # the verify process is successful
                 else:
                     stack.append(Zero)
 

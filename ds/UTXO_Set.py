@@ -8,6 +8,16 @@ from ds.UnspentTxOut import UnspentTxOut
 from ds.OutPoint import OutPoint
 from ds.BaseUTXO_Set import BaseUTXO_Set
 
+from params.Params import Params
+
+import binascii
+
+from utils.Errors import TxUnlockError
+from utils.Errors import TxnValidationError
+from utils.Errors import ChainFileLostError
+
+from .. import script
+
 logging.basicConfig(
     level=getattr(logging, os.environ.get('TC_LOG_LEVEL', 'INFO')),
     format='[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s')
@@ -46,3 +56,69 @@ class UTXO_Set(BaseUTXO_Set):
 
         return UnspentTxOut(
             *txout, txid=txid, is_coinbase=False, height=-1, txout_idx=txout_idx)
+
+    def validateTxn(self,
+                    txn,
+                    as_coinbase: bool = False,
+                    siblings_in_block: Iterable[NamedTuple] = None,  # object
+                    allow_utxo_from_mempool: bool = True,
+                    ) -> bool:
+
+        def get_current_height(chainfile=Params.CHAIN_FILE):
+            if not os.path.isfile(chainfile):
+                raise ChainFileLostError('chain file not found')
+            try:
+                with open(chainfile, "rb") as f:
+                    height = int(binascii.hexlify(f.read(4) or b'\x00'), 16)
+            except Exception:
+                logger.exception(f'[ds] read block height failed')
+                return 0
+            return height
+
+            # pre-verify process
+            txn.validate_basics(as_coinbase=as_coinbase)
+
+        # check the fee
+        available_to_spend = 0
+
+        for idx, txin in enumerate(self.txins):
+            utxo = utxo_set.get().get(txin.to_spend)
+
+            if siblings_in_block:
+                from ds.UTXO_Set import UTXO_Set
+                utxo = utxo or UTXO_Set.find_utxo_in_list(txin, siblings_in_block)
+
+            if allow_utxo_from_mempool:
+                utxo = utxo or mempool.find_utxo_in_mempool(txin)
+
+            # get utxo from the mempool for farther verify
+            if not utxo:
+                raise TxnValidationError(
+                    f'Could find no UTXO for TxIn [{idx}] for txn: {self.id}',
+                    to_orphan=self)
+
+            if utxo.is_coinbase and \
+                    (get_current_height() - utxo.height) < \
+                    Params.COINBASE_MATURITY:
+                raise TxnValidationError(f'Coinbase UTXO not ready for spend')
+
+            # do script check in this part!
+            try:
+                # temparary: validate_signature_for_spend(txin, utxo) (old version)
+                txio = script.Script(txn)
+                valid = txio.verify()
+                # temparary: produce new address to update the utxo.
+                addresses = [txio.output_address(o) for o in range(0, txio.output_count)]
+                if not valid:
+                    logger.exception(f'[script] Script check failed in Transaction part!')
+                    raise TxnValidationError(f'Script check failed')
+
+            except TxUnlockError:
+                raise TxnValidationError(f'{txin} is not a valid spend of {utxo}')
+
+            available_to_spend += utxo.value
+
+        if available_to_spend < sum(o.value for o in self.txouts):
+            raise TxnValidationError('Spend value is more than available'
+
+        return valid

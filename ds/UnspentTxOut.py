@@ -6,8 +6,13 @@ from ds.OutPoint import OutPoint
 
 
 class UnspentTxOut(NamedTuple):
+
     value: int
-    to_address: str
+
+    # temparary: to_address: str
+
+    # script for checking
+    pk_script: str
 
     # The ID of the transaction this output belongs to.
     txid: str
@@ -18,6 +23,7 @@ class UnspentTxOut(NamedTuple):
 
     # The blockchain height this TxOut was included in the chain.
     height: int
+
 
     @property
     def outpoint(self):

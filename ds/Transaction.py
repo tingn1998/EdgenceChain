@@ -15,12 +15,9 @@ from ds.TxIn import TxIn
 from ds.TxOut import TxOut
 from ds.BaseMemPool import BaseMemPool
 
-import binascii
-import ecdsa
 import logging
 import os
 
-from .. import script
 
 logging.basicConfig(
     level=getattr(logging, os.environ.get('TC_LOG_LEVEL', 'INFO')),
@@ -55,6 +52,8 @@ class Transaction(NamedTuple):
                 to_address=pay_to_addr)],
         )
 
+
+
     @property
     def id(self) -> str:
         return Utils.sha256d(Utils.serialize(self))
@@ -75,17 +74,17 @@ class Transaction(NamedTuple):
         if sum(t.value for t in self.txouts) > Params.MAX_MONEY:
             raise TxnValidationError('Spend value too high')
 
-    def validate_txn(self,
-                     utxo_set: BaseUTXO_Set,
-                     mempool: BaseMemPool = None,
-                     as_coinbase: bool = False,
-                     siblings_in_block: Iterable[NamedTuple] = None,  # object
-                     allow_utxo_from_mempool: bool = True,
-                     ) -> bool:
-        """
-        Validate a single transaction. Used in various contexts, so the
-        parameters facilitate different uses.
-        """
+    # def validate_txn(self,
+    #                  utxo_set: BaseUTXO_Set,
+    #                  mempool: BaseMemPool = None,
+    #                  as_coinbase: bool = False,
+    #                  siblings_in_block: Iterable[NamedTuple] = None,  # object
+    #                  allow_utxo_from_mempool: bool = True,
+    #                  ) -> bool:
+    #     """
+    #     Validate a single transaction. Used in various contexts, so the
+    #     parameters facilitate different uses.
+    #     """
 
         # def validate_signature_for_spend(txin, utxo: UnspentTxOut):
         #
@@ -136,63 +135,4 @@ class Transaction(NamedTuple):
         #     except Exception:
         #         logger.exception(f'[ds] Key verification failed')
         #         raise TxUnlockError("Signature doesn't match")
-        #     return True
 
-        def get_current_height(chainfile=Params.CHAIN_FILE):
-            if not os.path.isfile(chainfile):
-                raise ChainFileLostError('chain file not found')
-            try:
-                with open(chainfile, "rb") as f:
-                    height = int(binascii.hexlify(f.read(4) or b'\x00'), 16)
-            except Exception:
-                logger.exception(f'[ds] read block height failed')
-                return 0
-            return height
-
-        # pre-verify process
-        self.validate_basics(as_coinbase=as_coinbase)
-
-        # check the fee
-        available_to_spend = 0
-
-        for idx, txin in enumerate(self.txins):
-            utxo = utxo_set.get().get(txin.to_spend)
-
-            if siblings_in_block:
-                from ds.UTXO_Set import UTXO_Set
-                utxo = utxo or UTXO_Set.find_utxo_in_list(txin, siblings_in_block)
-
-            if allow_utxo_from_mempool:
-                utxo = utxo or mempool.find_utxo_in_mempool(txin)
-
-            # get utxo from the mempool for farther verify
-            if not utxo:
-                raise TxnValidationError(
-                    f'Could find no UTXO for TxIn [{idx}] for txn: {self.id}',
-                    to_orphan=self)
-
-            if utxo.is_coinbase and \
-                    (get_current_height() - utxo.height) < \
-                    Params.COINBASE_MATURITY:
-                raise TxnValidationError(f'Coinbase UTXO not ready for spend')
-
-            # do script check in this part!
-            try:
-                # validate_signature_for_spend(txin, utxo) (old version)
-                # get the bool for verify and str for to do maybe update process?(ljq)
-                txio = script.Script(utxo)
-                valid = txio.verify()
-                addresses = [txio.output_address(o) for o in range(0, txio.output_count)]
-                if not valid:
-                    logger.exception(f'[script] Script check failed in Transaction part!')
-                    raise TxnValidationError(f'Script check failed')
-
-            except TxUnlockError:
-                raise TxnValidationError(f'{txin} is not a valid spend of {utxo}')
-
-            available_to_spend += utxo.value
-
-        if available_to_spend < sum(o.value for o in self.txouts):
-            raise TxnValidationError('Spend value is more than available')
-
-        return True

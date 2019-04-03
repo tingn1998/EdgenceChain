@@ -101,7 +101,9 @@ class MemPool(BaseMemPool):
             return None
 
         try:
+            # utxo_set contains the scriptSig for cheking process
             txn.validate_txn(utxo_set, self.mempool)
+
         except TxnValidationError as e:
             if e.to_orphan:
                 logger.info(f'[ds] txn {e.to_orphan.id} submitted as orphan')
