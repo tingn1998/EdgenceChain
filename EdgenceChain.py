@@ -256,6 +256,13 @@ class EdgenceChain(object):
                     peers = self.peerManager.getPeers()
                     Peer.save_peers(peers, Params.PEERS_FILE)
 
+                time_now = time.time()
+                with self.chain_lock:
+                    for block in self.orphan_blocks:
+                        if time_now - block.timestamp > Params.MAXIMUM_ALLOWABLE_HEIGHT_DIFF*Params.TIME_BETWEEN_BLOCKS_IN_SECS_TARGET:
+                            self.orphan_blocks.remove(block)
+
+
                 peer = random.sample(self.peerManager.getPeers(), 1)[0]
                 try:
                     time.sleep(Params.TIME_BETWEEN_BLOCKS_IN_SECS_TARGET*0.9)
