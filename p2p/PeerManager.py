@@ -141,13 +141,13 @@ class PeerManager(object):
             for idx in range(number):
                 peerstate = self.peerstate_list[idx]
                 peers.append(peerstate.peer)
-            logger.info(f'[p2p] wanted number {number} is larger than number of unblocked peers {number_not_blocked} in PeerManager')
+            #logger.info(f'[p2p] wanted number {number} is larger than number of unblocked peers {number_not_blocked} in PeerManager')
         else:
             selected_idxs = random.sample(range(number_not_blocked), number)
             for idx in selected_idxs:
                 peerstate = self.peerstate_list[idx]
                 peers.append(peerstate.peer)
-            logger.info(f'[p2p] wanted number {number} is less than or equal to number of unblocked peers {number_not_blocked} in PeerManager')
+            #logger.info(f'[p2p] wanted number {number} is less than or equal to number of unblocked peers {number_not_blocked} in PeerManager')
 
         return peers
 
