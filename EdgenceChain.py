@@ -253,6 +253,8 @@ class EdgenceChain(object):
 
                 with self.peers_lock:
                     self.peerManager.update()
+                    peers = self.peerManager.getPeers()
+                    Peer.save_peers(peers, Params.PEERS_FILE)
 
                 peer = random.sample(self.peerManager.getPeers(), 1)[0]
                 try:
