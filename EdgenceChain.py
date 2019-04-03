@@ -205,7 +205,9 @@ class EdgenceChain(object):
                         if ret == 1:
                             if _peer in peers:
                                 with self.peers_lock:
-                                    self.peerManager.remove(_peer)
+                                    #self.peerManager.remove(_peer)
+                                    self.peerManager.block(_peer)
+
                         elif ret != 0:
                             with self.peers_lock:
                                 self.peerManager.addLog(_peer, 1)
@@ -248,6 +250,9 @@ class EdgenceChain(object):
         def initiative_sync():
             logger.info(f'thread for request top block periodically....')
             while True:
+
+                with self.peers_lock:
+                    self.peerManager.update()
 
                 peer = random.sample(self.peerManager.getPeers(), 1)[0]
                 try:

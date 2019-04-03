@@ -91,6 +91,20 @@ class PeerManager(object):
                 else:
                     logger.info(f'[p2p] remove {peer} from peerstate_list and find it in blacklist of PeerManager')
 
+    def block(self, peer: Peer)->None:
+
+        if peer in self.black_list:
+            self.black_list.remove(peer)
+        for idx, peerstate in enumerate(self.peerstate_list, 0):
+            if peerstate.peer == peer:
+                self.peerstate_list[idx] = peerstate._replace(isBlocked = True, log = bitarray('1'*self.state_number_limit))
+                logger.info(f'[p2p] block {peer} in PeerManager')
+                self.peerstate_list.sort(key = operator.attrgetter('isBlocked', 'count_1'))
+
+
+
+
+
     def update(self, bits: int = 1)->None:
         if bits > self.state_number_limit:
             bits = self.state_number_limit

@@ -388,7 +388,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                 if _peer in peers:
                                     try:
                                         with self.peers_lock:
-                                            self.peerManager.remove(_peer)#self.peers.remove(_peer)
+                                            #self.peerManager.remove(_peer)#self.peers.remove(_peer)
+                                            self.peerManager.block(_peer)
                                     except:
                                         pass
 
@@ -442,7 +443,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                 if _peer in peers:
                                     try:
                                         with self.peers_lock:
-                                            self.peerManager.remove(_peer)
+                                            self.peerManager.block(_peer)
                                     except:
                                         pass
                             elif ret != 0:
@@ -645,7 +646,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     if _peer in peers:
                         try:
                             with self.peers_lock:
-                                self.peerManager.remove(_peer)
+                                self.peerManager.block(_peer)
                         except:
                             pass
                         return
