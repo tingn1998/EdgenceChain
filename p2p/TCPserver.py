@@ -184,6 +184,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 with self.peers_lock:
                     self.peerManager.add(peer)
                 self.sendPeerExtend()
+            else:
+                self.peerManager.block(peer)
 
     def handleTopBlockSyncReq(self, topN: int, peer: Peer):
         #with self.chain_lock:
@@ -206,6 +208,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         self.peerManager.add(peer)#self.peers.append(peer)
                     #Peer.save_peers(self.peers)
                     self.sendPeerExtend()
+                else:
+                    self.peerManager.block(peer)
 
     def handleTopBlockReq(self, peer: Peer):
         logger.info(f"[p2p] to handle TopBlokReq from peer {peer}")
@@ -229,6 +233,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     #logger.info(f'[p2p] add peer {peer} into peer list')
                     #Peer.save_peers(self.peers)
                     self.sendPeerExtend()
+                else:
+                    self.peerManager.block(peer)
 
     def handleBlockSyncGet(self, blocks: Iterable[Block], peer: Peer):
         if peer != Peer('127.0.0.1', Params.PORT_CURRENT):
@@ -301,6 +307,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 #logger.info(f'[p2p] add peer {peer} into peer list')
                 #Peer.save_peers(self.peers)
                 self.sendPeerExtend()
+            else:
+                self.peerManager.block(peer)
 
         if peer == Peer('127.0.0.1', Params.PORT_CURRENT):
             peers = self.peerManager.getPeers()
@@ -531,6 +539,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     self.peerManager.add(peer_sample)
                 #logger.info(f'[p2p] add peer {peer_sample} into peer list')
                 #Peer.save_peers(self.peers)
+            else:
+                self.peerManager.block(peer_sample)
 
 
     @classmethod
