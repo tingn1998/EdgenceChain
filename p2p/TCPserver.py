@@ -261,6 +261,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                                           self.mempool, self.side_branches)
             if chain_idx is not None and chain_idx >= 1:
                 # if is side branches, append the blocks (one block left) to the side branches directly
+                logger.info(f'[p2p] {len(new_blocks)} new blocks received are {[block.id for block in new_blocks]}')
                 logger.info(f'[p2p] just append {len(new_blocks)-1} blocks to side branch {chain_idx}, leaving one block to '
                 f'be coped with method do_connect_block_and_after')
                 while len(new_blocks) >= 2:
