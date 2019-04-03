@@ -194,64 +194,66 @@ class EdgenceChain(object):
 
         def mine_forever():
             logger.info(f'thread for mining is started....')
+            def broadcast_new_mined_block():
+                peers = self.peerManager.getPeers()
+                for _peer in peers:
+                    ret = Utils.send_to_peer(Message(Actions.BlockRev, block, Params.PORT_CURRENT), _peer)
+                    if ret == 1:
+                        if _peer in peers:
+                            with self.peers_lock:
+                                #self.peerManager.remove(_peer)
+                                self.peerManager.block(_peer)
+
+                    elif ret != 0:
+                        with self.peers_lock:
+                            self.peerManager.addLog(_peer, 1)
+                    else:
+                        with self.peers_lock:
+                            self.peerManager.addLog(_peer, 0)
             while True:
 
-                block = self.assemble_and_solve_block()
+                try:
+                    block = self.assemble_and_solve_block()
 
-                if block:
-                    peers = self.peerManager.getPeers()
-                    for _peer in peers:
-                        ret = Utils.send_to_peer(Message(Actions.BlockRev, block, Params.PORT_CURRENT), _peer)
-                        if ret == 1:
-                            if _peer in peers:
-                                with self.peers_lock:
-                                    #self.peerManager.remove(_peer)
-                                    self.peerManager.block(_peer)
+                    if block:
 
-                        elif ret != 0:
-                            with self.peers_lock:
-                                self.peerManager.addLog(_peer, 1)
-                        else:
-                            with self.peers_lock:
-                                self.peerManager.addLog(_peer, 0)
+                        threading.Thread(target=broadcast_new_mined_block).start()
+                        #ret_outside_chain = False
+                        with self.chain_lock:
+                            #chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
+                            #logger.info(f'####### into chain_lock: {chain_use_id} of mine_forever')
+
+                            chain_idx  = TCPHandler.check_block_place(block, self.active_chain, self.utxo_set, \
+                                                                      self.mempool, self.side_branches)
+
+                            ret_outside_lock = False
+                            if chain_idx is not None and chain_idx >= 0:
+                                ret_outside_lock = TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, \
+                                                                      self.side_branches, self.mempool, \
+                                                               self.utxo_set, self.mine_interrupt)
+                            #logger.info(f'####### out of chain_lock: {chain_use_id} of mine_forever')
+                        if ret_outside_lock is True:
+                            if len(self.active_chain.chain) % Params.SAVE_PER_SIZE == 0 or len(self.active_chain.chain) <= 5:
+                                Persistence.save_to_disk(self.active_chain)
 
 
-                    #ret_outside_chain = False
-                    with self.chain_lock:
-                        #chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
-                        #logger.info(f'####### into chain_lock: {chain_use_id} of mine_forever')
-
-                        chain_idx  = TCPHandler.check_block_place(block, self.active_chain, self.utxo_set, \
-                                                                  self.mempool, self.side_branches)
-
-                        ret_outside_lock = False
                         if chain_idx is not None and chain_idx >= 0:
-                            ret_outside_lock = TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, \
-                                                                  self.side_branches, self.mempool, \
-                                                           self.utxo_set, self.mine_interrupt)
-                        #logger.info(f'####### out of chain_lock: {chain_use_id} of mine_forever')
-                    if ret_outside_lock is True:
-                        if len(self.active_chain.chain) % Params.SAVE_PER_SIZE == 0 or len(self.active_chain.chain) <= 5:
-                            Persistence.save_to_disk(self.active_chain)
-
-
-                    if chain_idx is not None and chain_idx >= 0:
-                        pass
-                    elif chain_idx is None:
-                        logger.info(f'mined already seen block {block.id}, just discard it and go')
-                    elif chain_idx == -2:
-                        logger.info(f"mined an orphan block {block.id}, just discard it and go")
-                    elif chain_idx == -1:
-                        logger.info(f'a mined block {block.id} but failed validation')
-                    else:
-                        logger.info(f'unwanted result of check block place')
-
+                            pass
+                        elif chain_idx is None:
+                            logger.info(f'mined already seen block {block.id}, just discard it and go')
+                        elif chain_idx == -2:
+                            logger.info(f"mined an orphan block {block.id}, just discard it and go")
+                        elif chain_idx == -1:
+                            logger.info(f'a mined block {block.id} but failed validation')
+                        else:
+                            logger.info(f'unwanted result of check block place')
+                except:
+                    pass
 
         def initiative_sync():
             logger.info(f'thread for request top block periodically....')
-            while True:
-                logger.info(f'another cycle of initiative sync')
-
+            def work_to_do():
+                logger.info(f'begin to work in another new thread of initiative_sync')
                 try:
                     with self.peers_lock:
                         self.peerManager.update()
@@ -273,9 +275,7 @@ class EdgenceChain(object):
 
 
                 try:
-                    peer = random.sample(self.peerManager.getPeers(), 1)[0]
-                    time.sleep(Params.TIME_BETWEEN_BLOCKS_IN_SECS_TARGET*0.9)
-
+                    peer = random.sample(self.peerManager.getPeers(2), 1)[0]
 
                     message = Message(Actions.TopBlockReq, None, Params.PORT_CURRENT)
 
@@ -308,6 +308,12 @@ class EdgenceChain(object):
 
                 except:
                     self.peerManager.addLog(peer, 1)
+            while True:
+                #logger.info(f'another cycle to request top block in initiative sync')
+                threading.Thread(target = work_to_do).start()
+                time.sleep(Params.TIME_BETWEEN_BLOCKS_IN_SECS_TARGET*0.9)
+
+
 
 
         # single thread mode, no need for thread lock
@@ -315,13 +321,10 @@ class EdgenceChain(object):
         #TCPHandler.printBlockchainIDs(self.active_chain, '[EdgenceChain] active chain')
 
         workers = []
-
         server = ThreadedTCPServer(('0.0.0.0', Params.PORT_CURRENT), TCPHandler, self.active_chain, self.side_branches,\
                                    self.orphan_blocks, self.utxo_set, self.mempool, self.peerManager, self.mine_interrupt, \
                                               self.ibd_done, self.chain_lock, self.peers_lock)
         start_worker(workers, server.serve_forever)
-
-
         self.initial_block_download()
 
         old_height = self.active_chain.height-0.5

@@ -35,7 +35,7 @@ class PoW(object):
         duration = max(time.time() - start, 0.0001)
         khs = (block.nonce // duration) // 1000
         logger.info(
-            f'[consensus] mining block found at nonce={nonce} using {duration} s at rate {khs} KH/s: {block.id}')
+            f'[consensus] mining block found at nonce={nonce} using {round(duration, 4)} s at rate {khs} KH/s: {block.id}')
 
 
         return block
