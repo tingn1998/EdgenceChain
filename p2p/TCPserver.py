@@ -308,24 +308,32 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 peer = random.sample(peers,1)[0]
             else:
                 return
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #socket.create_connection(peer(), timeout=25) as s:
-            s.connect(peer())
-            s.sendall(Utils.encode_socket_data(message))
-            logger.info(f'[p2p] succeed to send BlocksSyncReq to {peer}')
-            msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
-            data = b''
-            while msg_len > 0:
-                tdat = s.recv(1024)
-                data += tdat
-                msg_len -= len(tdat)
-        s.close()
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #socket.create_connection(peer(), timeout=25) as s:
+                s.connect(peer())
+                s.sendall(Utils.encode_socket_data(message))
+                logger.info(f'[p2p] succeed to send BlocksSyncReq to {peer}')
+                msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
+                data = b''
+                while msg_len > 0:
+                    tdat = s.recv(1024)
+                    data += tdat
+                    msg_len -= len(tdat)
+            s.close()
+        except ConnectionRefusedError:
+            self.peerManager.block(peer)
+        except:
+            self.peerManager.addLog(peer, 1)
+        else:
+            self.peerManager.addLog(peer, 0)
+
         message = Utils.deserialize(data.decode(), self.gs) if data else None
         if message:
             logger.info(f'[p2p] received blocks from peer {peer}')
             message = Message(message.action, message.data, Params.PORT_CURRENT, peer)
             ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
             if ret != 0:
-                logger.info(f'[p2p] cannot send data to itself')
+                logger.info(f'[p2p] cannot send data to itself, and its current port is {Params.PORT_CURRENT}')
             else:
                 #logger.info(f'[p2p] send BlocksSyncGet to itself')
                 pass
@@ -467,17 +475,25 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 if peer == Peer('127.0.0.1', Params.PORT_CURRENT):
                     peer = random.sample(self.peerManager.getPeers(),1)[0]
 
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:#socket.create_connection(peer(), timeout=25) as s:
-                    s.connect(peer())
-                    s.sendall(Utils.encode_socket_data(message))
-                    logger.info(f'[p2p] succeed to send TopBlocksSyncReq to {peer}')
-                    msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
-                    data = b''
-                    while msg_len > 0:
-                        tdat = s.recv(1024)
-                        data += tdat
-                        msg_len -= len(tdat)
-                s.close()
+                try:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:#socket.create_connection(peer(), timeout=25) as s:
+                        s.connect(peer())
+                        s.sendall(Utils.encode_socket_data(message))
+                        logger.info(f'[p2p] succeed to send TopBlocksSyncReq to {peer}')
+                        msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
+                        data = b''
+                        while msg_len > 0:
+                            tdat = s.recv(1024)
+                            data += tdat
+                            msg_len -= len(tdat)
+                    s.close()
+                except ConnectionRefusedError:
+                    self.peerManager.block(peer)
+                except:
+                    self.peerManager.addLog(peer, 1)
+                else:
+                    self.peerManager.addLog(peer, 0)
+
                 message = Utils.deserialize(data.decode(), self.gs) if data else None
                 if message:
                     logger.info(f'[p2p] received blocks from peer {peer}')
@@ -485,7 +501,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
 
                     if ret != 0:
-                        logger.info(f'[p2p] cannot send data to itself')
+                        logger.info(f'[p2p] cannot send data to itself, and its current port is {Params.PORT_CURRENT}')
                     else:
                         #logger.info(f'[p2p] send BlocksSyncGet to itself')
                         pass

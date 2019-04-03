@@ -165,7 +165,7 @@ class EdgenceChain(object):
                         ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
 
                         if ret != 0:
-                            logger.info(f'cannot send data to itself')
+                            logger.info(f'cannot send data to itself, and its port is {Params.PORT_CURRENT}')
 
 
                         #logger.info(f'[EdgenceChain] send BlocksSyncGet to itself')
@@ -290,7 +290,7 @@ class EdgenceChain(object):
                         message = Message(Actions.BlockRev, message.data, Params.PORT_CURRENT, peer)
                         ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
                         if ret != 0:
-                            logger.info(f'cannot send data to itself')
+                            logger.info(f'cannot send data to itself, and its port is {Params.PORT_CURRENT}')
                         else:
                             #logger.info(f'[EdgenceChain] send BlockRev to itself')
                             pass
