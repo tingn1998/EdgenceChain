@@ -21,6 +21,7 @@ from ds.OutPoint import OutPoint
 from utils.Errors import BlockValidationError
 from utils.Utils import Utils
 from params.Params import Params
+from ds.BlockStats import BlockStats
 
 from p2p.Message import Message
 
@@ -116,6 +117,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
         if not self.ibd_done.is_set() and action != Actions.BlocksSyncGet:
             logger.info(f'ibd_done is not set, and action {action} is not {Actions.BlocksSyncGet}')
+            self.request.shutdown(socket.SHUT_RDWR)
+            self.request.close()
             return
 
         if action == Actions.BlocksSyncReq:
@@ -150,13 +153,36 @@ class TCPHandler(socketserver.BaseRequestHandler):
             self.handleTopBlockSyncReq(message.data, peer)
         elif action == Actions.TopBlockReq:
             self.handleTopBlockReq(peer)
+        elif action == Actions.BlockstatsReq:
+            self.handleBlockstatsReq(peer)
+        elif action == Actions.BlockAtHeightReq:
+            self.handleBlockAtHeightReq(message.data, peer)
         else:
             self.request.shutdown(socket.SHUT_RDWR)
             self.request.close()
             logger.info(f'[p2p] received unwanted action request ')
 
+    def handleBlockstatsReq(self, peer):
+        with self.chain_lock:
+            height = self.active_chain.height
+            difficulty = self.active_chain.chain[-1].nonce/1000/(self.active_chain.chain[-1].timestamp - self.active_chain.chain[-2].timestamp)
+            tx_pool_size = len(self.mempool.mempool)
 
+        blockStats = BlockStats(height, difficulty, tx_pool_size)
+        message = Message(Actions.BlocksSyncGet, blockStats, Params.PORT_CURRENT)
+        ret = self.request.sendall(Utils.encode_socket_data(message))
+        logger.info(f"[p2p] sent blockstats to {peer}")
 
+    def handleBlockAtHeightReq(self, height:int, peer: Peer):
+        logger.info(f'[p2p] receive BlockAtHeightReq from peer {peer}')
+
+        with self.chain_lock:
+            if height > self.active_chain.height:
+                height = self.active_chain.height
+            block = copy.deepcopy(self.active_chain.chain[height-1])
+        message = Message(Actions.BlockRev, block, Params.PORT_CURRENT)
+        ret = self.request.sendall(Utils.encode_socket_data(message))
+        logger.info(f"[p2p] sent block at height {height} in handleBlockAtHeight to {peer}")
 
     def handleBlockSyncReq(self, blockid: str, peer: Peer):
 
