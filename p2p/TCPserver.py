@@ -97,7 +97,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
             #logger.info(f'message is {message}')
             #logger.info(f'type of self.request is {type(self.request)} after read')
         except:
-            logger.exception(f'[p2p] Invalid meassage from peer {self.request.getpeername()[0]}')
+            logger.exception(f'[p2p] invalid meassage from peer {self.request.getpeername()[0]}')
             return
 
 

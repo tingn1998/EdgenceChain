@@ -147,6 +147,7 @@ class EdgenceChain(object):
                         s.settimeout(70)
                         s.connect(peer())
                         s.sendall(Utils.encode_socket_data(message))
+                        logger.info(f'sending BLockSyncReq successfully at {self.active_chain.chain[-1].id} to {peer}')
                         msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
                         data = b''
                         while msg_len > 0:
@@ -283,6 +284,7 @@ class EdgenceChain(object):
                             s.sendall(Utils.encode_socket_data(message))
                             logger.info(f'[EdgenceChain] succeed to send TopBlockReq to {peer}')
                             msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
+                            print(f'msg_len is {msg_len}')
                             data = b''
                             while msg_len > 0:
                                 tdat = s.recv(1024)
