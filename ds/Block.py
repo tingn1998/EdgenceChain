@@ -79,9 +79,9 @@ class Block(NamedTuple):
                     '232352c204a69617169204c69752c2078696179756e696c0a',
             prev_block_hash=None,
             merkle_hash='8cfb8d2d2ed9343461b0eefb73c775b9366a32e05e81b0e8946620e2f1935507',
-            timestamp=1547747173,
+            timestamp=1554460209,
             bits=Params.INITIAL_DIFFICULTY_BITS,
-            nonce=9051321,
+            nonce=17040052,
             txns=[Transaction(
                 txins=[TxIn(
                     to_spend=None, unlock_sig=b'0', unlock_pk=None, sequence=0)],

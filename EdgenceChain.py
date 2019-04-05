@@ -248,7 +248,8 @@ class EdgenceChain(object):
                     pass
 
         def initiative_sync():
-            logger.info(f'thread for request top block periodically....')
+
+            # logger.info(f'thread for request top block periodically....')
             def work_to_do():
                 logger.info(f'begin to work in another new thread of initiative_sync')
                 try:
@@ -306,7 +307,7 @@ class EdgenceChain(object):
             while True:
                 #logger.info(f'another cycle to request top block in initiative sync')
                 threading.Thread(target = work_to_do).start()
-                time.sleep(Params.TIME_BETWEEN_BLOCKS_IN_SECS_TARGET*0.3)
+                time.sleep(Params.TIME_BETWEEN_BLOCKS_IN_SECS_TARGET)
 
 
 
