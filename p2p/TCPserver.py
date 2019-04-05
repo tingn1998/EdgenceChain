@@ -243,25 +243,39 @@ class TCPHandler(socketserver.BaseRequestHandler):
         logger.info(f'[p2p] {len(new_blocks)} of {len(blocks)} blocks from {peer} is new')
 
         if not new_blocks:
-            logger.info('[p2p] initial block download complete, prepare to mine')
+            logger.info('[p2p] initial block download complete')
             self.ibd_done.set()
             return
         else:
             self.ibd_done.clear()
-
         if not TCPHandler.check_blocks_headers(new_blocks):
             return
 
 
         with self.chain_lock:
-            #chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
-            #logger.info(f'####### into chain_lock: {chain_use_id} of handleBlockSyncGet')
+
+            for block in new_blocks:
+                if Block.locate_block(block.id, self.active_chain, self.side_branches)[0]:
+                    new_blocks.pop(0)
+                else:
+                    break
+            if not new_blocks:
+                return
 
             chain_idx  = TCPHandler.check_block_place(new_blocks[0], self.active_chain, self.utxo_set, \
                                                           self.mempool, self.side_branches)
-            if chain_idx is not None and chain_idx >= 1:
+            if chain_idx is None:
+                logger.info(f'received blocks have been seen in BlockSyncGet, do nothing and return')
+                return
+            if chain_idx <= -1:
+                logger.info(f'[p2p] orphan or wrong blocks')
+                if peer != Peer('127.0.0.1', Params.PORT_CURRENT):
+                    with self.peers_lock:
+                        self.peerManager.block(peer)
+                return
+
+            if chain_idx >= 1:
                 # if is side branches, append the blocks (one block left) to the side branches directly
-                logger.info(f'[p2p] {len(new_blocks)} new blocks received are {[block.id for block in new_blocks]}')
                 logger.info(f'[p2p] just append {len(new_blocks)-1} blocks to side branch {chain_idx}, leaving one block to '
                 f'be coped with method do_connect_block_and_after')
                 while len(new_blocks) >= 2:
@@ -269,32 +283,16 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
             for block in new_blocks:
+                if not TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, self.side_branches, \
+                                                self.mempool, self.utxo_set, self.mine_interrupt):
+                    return
 
-                if chain_idx is not None and chain_idx >= 0:
-                    if not TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, self.side_branches, \
-                                                    self.mempool, self.utxo_set, self.mine_interrupt):
-                        #logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockSyncGet')
-                        return
-                elif chain_idx is not None and chain_idx <= -1:
-                    logger.info(f'[p2p] orphan or wrong block {block.id}')
-                    if peer != Peer('127.0.0.1', Params.PORT_CURRENT):
-                        with self.peers_lock:
-                            self.peerManager.block(peer)
 
-                    break
-                else:
-                    logger.info(f'[p2p] do nothing for block {block.id}')
+        if chain_idx == Params.ACTIVE_CHAIN_IDX:
+            if len(self.active_chain.chain) % Params.SAVE_PER_SIZE == 0 or len(self.active_chain.chain) <= 5:
+                Persistence.save_to_disk(self.active_chain)
 
-            new_tip_id = self.active_chain.chain[-1].id
-            #logger.info(f'####### out of chain_lock: {chain_use_id} of handleBlockSyncGet')
-
-        if len(self.active_chain.chain) % Params.SAVE_PER_SIZE == 0 or len(self.active_chain.chain) <= 5:
-            Persistence.save_to_disk(self.active_chain)
-
-        logger.info(f'[p2p] current chain height {self.active_chain.height}, and continue initial block download ... ')
-
-        message = Message(Actions.BlocksSyncReq, new_tip_id, Params.PORT_CURRENT)
-
+            logger.info(f'[p2p] current chain height {self.active_chain.height}, and continue initial block download ... ')
 
         if peer not in self.peerManager.getPeers():
             if peer== Peer('127.0.0.1', Params.PORT_CURRENT) or \
@@ -305,20 +303,20 @@ class TCPHandler(socketserver.BaseRequestHandler):
             if Utils.is_peer_valid(peer):
                 with self.peers_lock:
                     self.peerManager.add(peer)#self.peers.append(peer)
-                #logger.info(f'[p2p] add peer {peer} into peer list')
-                #Peer.save_peers(self.peers)
                 self.sendPeerExtend()
             else:
                 self.peerManager.block(peer)
 
+
+
         if peer == Peer('127.0.0.1', Params.PORT_CURRENT):
-            peers = self.peerManager.getPeers()
-            if len(peers) > 0:
-                peer = random.sample(peers,1)[0]
-            else:
-                return
+            logger.info(f'peer in handleBlockSyncGet cannot be itself')
+            return
+
+        top_id_chain_idx = new_blocks[-1].id
+        message = Message(Actions.BlocksSyncReq, top_id_chain_idx, Params.PORT_CURRENT)
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #socket.create_connection(peer(), timeout=25) as s:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect(peer())
                 s.sendall(Utils.encode_socket_data(message))
                 logger.info(f'[p2p] succeed to send BlocksSyncReq to {peer}')
@@ -338,14 +336,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
             message = Utils.deserialize(data.decode(), self.gs) if data else None
             if message:
-                logger.info(f'[p2p] received blocks from peer {peer}')
+                logger.info(f'[p2p] received blocks for sync blocks from peer {peer}')
                 message = Message(message.action, message.data, Params.PORT_CURRENT, peer)
                 ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
                 if ret != 0:
                     logger.info(f'[p2p] cannot send data to itself, and its current port is {Params.PORT_CURRENT}')
-                else:
-                    #logger.info(f'[p2p] send BlocksSyncGet to itself')
-                    pass
 
             else:
                 logger.info(f'[p2p] recv nothing from peer {peer}')
@@ -432,9 +427,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
             if peer != Peer('127.0.0.1', Params.PORT_CURRENT):
                 logger.info(f"[p2p] received block {block.id} from peer {peer}")
             with self.chain_lock:
-                #chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
-                #logger.info(f'####### into chain_lock: {chain_use_id} of handleBlockRev')
-
 
                 chain_idx  = TCPHandler.check_block_place(block, self.active_chain, self.utxo_set, self.mempool, \
                                                           self.side_branches)
@@ -482,7 +474,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 #case of orphan block
                 message = Message(Actions.TopBlocksSyncReq, 50, Params.PORT_CURRENT)
                 if peer == Peer('127.0.0.1', Params.PORT_CURRENT):
-                    peer = random.sample(self.peerManager.getPeers(),1)[0]
+                    getpeers = self.peerManager.getPeers(2)
+                    if len(getpeers) > 0:
+                        peer = random.sample(getpeers, 1)[0]
+                    else:
+                        return
 
                 try:
                     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:#socket.create_connection(peer(), timeout=25) as s:
@@ -505,7 +501,12 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
                     message = Utils.deserialize(data.decode(), self.gs) if data else None
                     if message:
-                        logger.info(f'[p2p] received blocks from peer {peer}')
+                        blocks = message.data
+                        if not Block.locate_block(blocks[0].prev_block_hash, self.active_chain, self.side_branches)[0]:
+                            logger.info(f"received sync blocks for the orphan block in handleBlockRev, but the first blocks's pre_block_hash cannot be seen on the chains")
+                            self.peerManager.block(peer)
+                            return
+
                         message = Message(message.action, message.data, Params.PORT_CURRENT, peer)
                         ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
 

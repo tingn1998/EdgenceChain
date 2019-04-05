@@ -118,7 +118,9 @@ class PeerManager(object):
                 self.peerstate_list[idx] = peerstate._replace(isBlocked = False)
                 logger.info(f'[p2p] {peerstate.peer} is unblocked in updating of PeerManager')
         self.peerstate_list.sort(key = operator.attrgetter('isBlocked', 'count_1'))
-        logger.info(f'unblocked peer list is: {[peerstate.peer for peerstate in self.peerstate_list if not peerstate.isBlocked]}')
+        unblocked_list = [peerstate.peer for peerstate in self.peerstate_list if not peerstate.isBlocked]
+        if unblocked_list:
+            logger.info(f'unblocked peer list is: {unblocked_list}')
 
     def getPeers(self, number: int = 0)->Iterable[Peer]:
 
@@ -132,7 +134,8 @@ class PeerManager(object):
         if number > len(self.peerstate_list):
             number = len(self.peerstate_list)
         if number == 0:
-            logger.info(f'[p2p] no peers in currrent PeerManager')
+            #logger.info(f'[p2p] no peers in currrent PeerManager')
+            pass
 
 
 

@@ -29,7 +29,7 @@ class Params:
     # This is lower than Bitcoin's configuation (10 * 60).
     #
     # #realname PowTargetSpacing
-    TIME_BETWEEN_BLOCKS_IN_SECS_TARGET = int(1 * 60)
+    TIME_BETWEEN_BLOCKS_IN_SECS_TARGET = int(60)
 
     # The number of seconds we want a difficulty period to last.
     #

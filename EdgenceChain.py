@@ -272,46 +272,44 @@ class EdgenceChain(object):
                 except:
                     pass
 
+                getpeers = self.peerManager.getPeers(2)
+                if len(getpeers) > 0:
+                    peer = random.sample(getpeers, 1)[0]
+                    try:
+                        message = Message(Actions.TopBlockReq, None, Params.PORT_CURRENT)
 
-
-                try:
-                    peer = random.sample(self.peerManager.getPeers(2), 1)[0]
-
-                    message = Message(Actions.TopBlockReq, None, Params.PORT_CURRENT)
-
-
-                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #socket.create_connection(peer(), timeout=25) as s:
-                        #logger.info(f'[EdgenceChain] begin to connect to {peer}')
-                        s.connect(peer())
-                        #logger.info(f'[EdgenceChain] succeed to create socket connection with {peer}, and begin to send data ...')
-                        s.sendall(Utils.encode_socket_data(message))
-                        logger.info(f'[EdgenceChain] succeed to send TopBlockReq to {peer}')
-                        msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
-                        data = b''
-                        while msg_len > 0:
-                            tdat = s.recv(1024)
-                            data += tdat
-                            msg_len -= len(tdat)
-                    s.close()
-                    message = Utils.deserialize(data.decode(), self.gs) if data else None
-                    if message:
-                        logger.info(f'[EdgenceChain] received top block from peer {peer}')
-                        message = Message(Actions.BlockRev, message.data, Params.PORT_CURRENT, peer)
-                        ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
-                        if ret != 0:
-                            logger.info(f'cannot send data to itself, and its port is {Params.PORT_CURRENT}')
+                        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #socket.create_connection(peer(), timeout=25) as s:
+                            #logger.info(f'[EdgenceChain] begin to connect to {peer}')
+                            s.connect(peer())
+                            #logger.info(f'[EdgenceChain] succeed to create socket connection with {peer}, and begin to send data ...')
+                            s.sendall(Utils.encode_socket_data(message))
+                            logger.info(f'[EdgenceChain] succeed to send TopBlockReq to {peer}')
+                            msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
+                            data = b''
+                            while msg_len > 0:
+                                tdat = s.recv(1024)
+                                data += tdat
+                                msg_len -= len(tdat)
+                        s.close()
+                        message = Utils.deserialize(data.decode(), self.gs) if data else None
+                        if message:
+                            logger.info(f'[EdgenceChain] received top block from peer {peer}')
+                            message = Message(Actions.BlockRev, message.data, Params.PORT_CURRENT, peer)
+                            ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
+                            if ret != 0:
+                                logger.info(f'cannot send data to itself, and its port is {Params.PORT_CURRENT}')
+                            else:
+                                #logger.info(f'[EdgenceChain] send BlockRev to itself')
+                                pass
                         else:
-                            #logger.info(f'[EdgenceChain] send BlockRev to itself')
-                            pass
-                    else:
-                        logger.info(f'[EdgenceChain] recv nothing from peer {peer}')
+                            logger.info(f'[EdgenceChain] recv nothing from peer {peer}')
 
-                except:
-                    self.peerManager.addLog(peer, 1)
+                    except:
+                        self.peerManager.addLog(peer, 1)
             while True:
                 #logger.info(f'another cycle to request top block in initiative sync')
                 threading.Thread(target = work_to_do).start()
-                time.sleep(Params.TIME_BETWEEN_BLOCKS_IN_SECS_TARGET*0.9)
+                time.sleep(Params.TIME_BETWEEN_BLOCKS_IN_SECS_TARGET*0.3)
 
 
 
