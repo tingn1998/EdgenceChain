@@ -213,9 +213,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
     def handleTopBlockReq(self, peer: Peer):
         logger.info(f"[p2p] to handle TopBlokReq from peer {peer}")
-        block = self.active_chain.chain[-1]
 
-        message = Message(Actions.BlockRev, block, Params.PORT_CURRENT)
+        message = Message(Actions.BlockRev, self.active_chain.chain[-1], Params.PORT_CURRENT)
         ret = self.request.sendall(Utils.encode_socket_data(message))
         logger.info(f"[p2p] sent top block in handleTopBlockReq to {peer}")
 
@@ -423,7 +422,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
             return
 
     def handleBlockRev(self, block: Block, peer: Peer):
-        if isinstance(block, Block):
+        if not isinstance(block, Block):
+            logger.info(f'[p2p] {block} is not a Block')
+            return
+        else:
             if peer != Peer('127.0.0.1', Params.PORT_CURRENT):
                 logger.info(f"[p2p] received block {block.id} from peer {peer}")
             with self.chain_lock:
@@ -526,8 +528,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         logger.info(f'[p2p] recv nothing from peer {peer}')
 
 
-        else:
-            logger.info(f'[p2p] {block} is not a Block')
 
     def handlePeerExtendGet(self, peer_samples: Iterable[Peer], peer: Peer):
         #logger.info(f"[p2p] received {len(peer_samples)} peers from peer {peer}")
