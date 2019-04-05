@@ -111,8 +111,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
 
-
         action = int(message.action)
+
+        if not self.ibd_done.is_set() and action != Actions.BlocksSyncGet:
+            return
+
         if action == Actions.BlocksSyncReq:
             self.handleBlockSyncReq(message.data, peer)
         elif action == Actions.BlocksSyncGet:

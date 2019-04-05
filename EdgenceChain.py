@@ -316,7 +316,7 @@ class EdgenceChain(object):
         # single thread mode, no need for thread lock
         Persistence.load_from_disk(self.active_chain, self.utxo_set)
         #TCPHandler.printBlockchainIDs(self.active_chain, '[EdgenceChain] active chain')
-        
+
         workers = []
         server = ThreadedTCPServer(('0.0.0.0', Params.PORT_CURRENT), TCPHandler, self.active_chain, self.side_branches,\
                                    self.orphan_blocks, self.utxo_set, self.mempool, self.peerManager, self.mine_interrupt, \
