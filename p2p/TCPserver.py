@@ -175,7 +175,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
             return
         else:
             logger.info(f"[p2p] receive BlockSyncReq at height {height} from peer {peer}")
-        blocks = self.active_chain.chain[height:(height + Params.CHUNK_SIZE)]
+
+        with self.chain_lock:
+            blocks = copy.deepcopy(self.active_chain.chain[height:(height + Params.CHUNK_SIZE)])
 
         logger.info(f"[p2p] sending {len(blocks)} blocks to {peer}")
 
@@ -197,7 +199,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
     def handleTopBlockSyncReq(self, topN: int, peer: Peer):
         #with self.chain_lock:
         logger.info(f"[p2p] to handle TopBlockSyncReq with length {topN} from peer {peer}")
-        blocks = self.active_chain.chain[-topN:]
+        with self.chain_lock:
+            blocks = copy.deepcopy(self.active_chain.chain[-topN:])
 
         message = Message(Actions.BlocksSyncGet, blocks, Params.PORT_CURRENT)
         ret = self.request.sendall(Utils.encode_socket_data(message))
