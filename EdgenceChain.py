@@ -311,16 +311,17 @@ class EdgenceChain(object):
                 threading.Thread(target = work_to_do).start()
                 time.sleep(Params.TIME_BETWEEN_BLOCKS_IN_SECS_TARGET*0.3)
 
-        workers = []
-        server = ThreadedTCPServer(('0.0.0.0', Params.PORT_CURRENT), TCPHandler, self.active_chain, self.side_branches,\
-                                   self.orphan_blocks, self.utxo_set, self.mempool, self.peerManager, self.mine_interrupt, \
-                                              self.ibd_done, self.chain_lock, self.peers_lock)
 
 
         # single thread mode, no need for thread lock
         Persistence.load_from_disk(self.active_chain, self.utxo_set)
         #TCPHandler.printBlockchainIDs(self.active_chain, '[EdgenceChain] active chain')
-
+        
+        workers = []
+        server = ThreadedTCPServer(('0.0.0.0', Params.PORT_CURRENT), TCPHandler, self.active_chain, self.side_branches,\
+                                   self.orphan_blocks, self.utxo_set, self.mempool, self.peerManager, self.mine_interrupt, \
+                                              self.ibd_done, self.chain_lock, self.peers_lock)
+        start_worker(workers, server.serve_forever)
 
         self.initial_block_download()
 
@@ -339,7 +340,7 @@ class EdgenceChain(object):
         self.ibd_done.set()
 
 
-        start_worker(workers, server.serve_forever)
+
         start_worker(workers, mine_forever)
         start_worker(workers, initiative_sync)
         
