@@ -115,6 +115,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         action = int(message.action)
 
         if not self.ibd_done.is_set() and action != Actions.BlocksSyncGet:
+            logger.info(f'ibd_done is not set, and action {action} is not {Actions.BlocksSyncGet}')
             return
 
         if action == Actions.BlocksSyncReq:
