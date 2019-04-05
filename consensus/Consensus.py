@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class PoW(object):
 
     @classmethod
-    def mine(cls, block: Block, mine_interrupt: threading.Event) -> Union[Block, None]:
+    def mine(cls, block: Block, mine_interrupt: threading.Event = None) -> Union[Block, None]:
         start = time.time()
         nonce = 0
         target = (1 << (256 - block.bits))

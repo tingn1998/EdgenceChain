@@ -8,10 +8,7 @@ class Params:
     # The infamous max block size.
     MAX_BLOCK_SERIALIZED_SIZE = int(1000000)  # bytes = 1MB
 
-    # Coinbase transaction outputs can be spent after this many blocks have
-    # elapsed since being mined.
-    #
-    # This is "100" in bitcoin core.
+
     COINBASE_MATURITY = int(2)
 
     # Accept blocks timestamped as being from the future, up to this amount.
@@ -47,7 +44,7 @@ class Params:
 
     # The number of right-shifts applied to 2 ** 256 in order to create the
     # initial difficulty target necessary for mining a block.
-    INITIAL_DIFFICULTY_BITS = int(22)
+    INITIAL_DIFFICULTY_BITS = int(24)
 
     # The number of blocks after which the mining subsidy will halve.
     #
