@@ -502,10 +502,17 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     message = Utils.deserialize(data.decode(), self.gs) if data else None
                     if message:
                         blocks = message.data
-                        if not Block.locate_block(blocks[0].prev_block_hash, self.active_chain, self.side_branches)[0]:
-                            logger.info(f"received sync blocks for the orphan block in handleBlockRev, but the first blocks's pre_block_hash cannot be seen on the chains")
-                            self.peerManager.block(peer)
-                            return
+                        if blocks[0].prev_block_hash:
+                            if not Block.locate_block(blocks[0].prev_block_hash, self.active_chain, self.side_branches)[0]:
+                                logger.info(f"received sync blocks for the orphan block in handleBlockRev, but the first blocks's pre_block_hash cannot be seen on the chains")
+                                self.peerManager.block(peer)
+                                return
+                        else:
+                            blocks.pop(0)
+                            if not Block.locate_block(blocks[0].prev_block_hash, self.active_chain, self.side_branches)[0]:
+                                logger.info(f"received sync blocks for the orphan block in handleBlockRev, but the first blocks's pre_block_hash cannot be seen on the chains")
+                                self.peerManager.block(peer)
+                                return
 
                         message = Message(message.action, message.data, Params.PORT_CURRENT, peer)
                         ret = Utils.send_to_peer(message, Peer('127.0.0.1', Params.PORT_CURRENT), itself = True)
