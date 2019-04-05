@@ -1,5 +1,6 @@
 import binascii
 import time
+import copy
 import json
 import hashlib
 import threading
@@ -149,7 +150,7 @@ class EdgenceChain(object):
                         s.sendall(Utils.encode_socket_data(message))
                         logger.info(f'sending BLockSyncReq successfully at {self.active_chain.chain[-1].id} to {peer}')
                         msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
-                        print(f'msg_len is {msg_len}')
+
                         data = b''
                         while msg_len > 0:
                             tdat = s.recv(1024)
@@ -169,6 +170,7 @@ class EdgenceChain(object):
                         logger.info(f'[EdgenceChain] recv no new blocks when in initial_block_download from peer {peer}, and waiting for finishing')
                         time.sleep(Params.TIME_BETWEEN_BLOCKS_IN_SECS_TARGET)
                         self.ibd_done.set()
+                        break
                 except Exception as e:
                     #logger.exception(f'Error: {repr(e)}, and remove dead peer {peer}')
                     if peer in peers:
@@ -192,10 +194,10 @@ class EdgenceChain(object):
 
         def mine_forever():
             logger.info(f'thread for mining is started....')
-            def broadcast_new_mined_block():
+            def broadcast_new_mined_block(block_to_broadcast):
                 peers = self.peerManager.getPeers()
                 for _peer in peers:
-                    ret = Utils.send_to_peer(Message(Actions.BlockRev, block, Params.PORT_CURRENT), _peer)
+                    ret = Utils.send_to_peer(Message(Actions.BlockRev, block_to_broadcast, Params.PORT_CURRENT), _peer)
                     if ret == 1:
                         if _peer in peers:
                             with self.peers_lock:
@@ -215,7 +217,7 @@ class EdgenceChain(object):
 
                     if block:
 
-                        threading.Thread(target=broadcast_new_mined_block).start()
+                        threading.Thread(target=broadcast_new_mined_block, args = (copy.deepcopy(block),)).start()
                         #ret_outside_chain = False
                         with self.chain_lock:
                             #chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
@@ -284,7 +286,6 @@ class EdgenceChain(object):
                             s.sendall(Utils.encode_socket_data(message))
                             logger.info(f'[EdgenceChain] succeed to send TopBlockReq to {peer}')
                             msg_len = int(binascii.hexlify(s.recv(4) or b'\x00'), 16)
-                            print(f'msg_len is {msg_len}')
                             data = b''
                             while msg_len > 0:
                                 tdat = s.recv(1024)
