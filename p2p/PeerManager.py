@@ -156,6 +156,10 @@ class PeerManager(object):
         return peers
 
 
+    def getAllPeers(self)->Iterable[Peer]:
+        peers = []
+        for peerstate in self.peerstate_list:
+            peers.append(peerstate.peer)
 
 
 

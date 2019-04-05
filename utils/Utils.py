@@ -179,17 +179,20 @@ class Utils(object):
                 s.connect(peer())
         except ConnectionRefusedError:
             try:
+                s.shutdown(socket.SHUT_RDWR)
                 s.close()
             except:
                 pass
             return False
         except Exception:
             try:
+                s.shutdown(socket.SHUT_RDWR)
                 s.close()
             except:
                 pass
         else:
             try:
+                s.shutdown(socket.SHUT_RDWR)
                 s.close()
             except:
                 pass

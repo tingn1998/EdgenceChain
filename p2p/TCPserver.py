@@ -178,7 +178,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         message = Message(Actions.BlocksSyncGet, blocks, Params.PORT_CURRENT)
         self.request.sendall(Utils.encode_socket_data(message))
 
-        if (peer not in self.peerManager.getPeers()) and not (peer == Peer('127.0.0.1', Params.PORT_CURRENT) or \
+        if (peer not in self.peerManager.getAllPeers()) and not (peer == Peer('127.0.0.1', Params.PORT_CURRENT) or \
                 peer == Peer('localhost', Params.PORT_CURRENT) or \
                     peer.ip == '0.0.0.0' or \
                     peer == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT)):
@@ -200,7 +200,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         logger.info(f"[p2p] sent {len(blocks)} blocks in handleTopBlockSyncReq to {peer}")
 
         if ret is None:
-            if peer not in self.peerManager.getPeers():
+            if peer not in self.peerManager.getAllPeers():
                 if peer== Peer('127.0.0.1', Params.PORT_CURRENT) or \
                                 peer == Peer('localhost', Params.PORT_CURRENT) or \
                                     peer.ip == '0.0.0.0' or \
@@ -223,7 +223,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
         if ret is None:
         #if self.request.sendall(Utils.encode_socket_data(message)) is None:
-            if peer not in self.peerManager.getPeers():
+            if peer not in self.peerManager.getAllPeers():
                 if peer== Peer('127.0.0.1', Params.PORT_CURRENT) or \
                                 peer == Peer('localhost', Params.PORT_CURRENT) or \
                                     peer.ip == '0.0.0.0' or \
@@ -296,7 +296,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
             logger.info(f'[p2p] current chain height {self.active_chain.height}, and continue initial block download ... ')
 
-        if peer not in self.peerManager.getPeers():
+        if peer not in self.peerManager.getAllPeers():
             if peer== Peer('127.0.0.1', Params.PORT_CURRENT) or \
                             peer == Peer('localhost', Params.PORT_CURRENT) or \
                                 peer.ip == '0.0.0.0' or \
@@ -543,7 +543,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     peer_sample.ip == '0.0.0.0' or \
                     peer_sample == Peer(Params.PUBLIC_IP, Params.PORT_CURRENT):
                 continue
-            if peer_sample in self.peerManager.getPeers():
+            if peer_sample in self.peerManager.getAllPeers():
                 continue
             if Utils.is_peer_valid(peer_sample):
                 with self.peers_lock:
