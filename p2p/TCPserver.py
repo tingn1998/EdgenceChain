@@ -2,6 +2,7 @@ import binascii
 import time
 import json
 import hashlib
+import copy
 import threading
 import _thread
 import logging
@@ -165,7 +166,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
         height = Block.locate_block(blockid, self.active_chain)[1]
         if height is None:
             logger.info(f'[p2p] cannot find blockid {blockid}, and do nothing for this BlockSyncReq from peer {peer}')
-            message = Message(Actions.BlockRev, self.active_chain.chain[-1], Params.PORT_CURRENT)
+            with self.chain_lock:
+                block = copy.deepcopy(self.active_chain.chain[-1])
+
+            message = Message(Actions.BlockRev, block, Params.PORT_CURRENT)
             self.request.sendall(Utils.encode_socket_data(message))
 
             return
@@ -217,7 +221,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
     def handleTopBlockReq(self, peer: Peer):
         logger.info(f"[p2p] to handle TopBlokReq from peer {peer}")
 
-        message = Message(Actions.BlockRev, self.active_chain.chain[-1], Params.PORT_CURRENT)
+        with self.chain_lock:
+            block = copy.deepcopy(self.active_chain.chain[-1])
+        message = Message(Actions.BlockRev, block, Params.PORT_CURRENT)
         ret = self.request.sendall(Utils.encode_socket_data(message))
         logger.info(f"[p2p] sent top block in handleTopBlockReq to {peer}")
 
