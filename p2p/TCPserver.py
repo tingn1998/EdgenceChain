@@ -572,7 +572,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         if connect_block_success is not False:
 
             if connect_block_success is not True: # -1, success and reorg
-                logger.info(f'[p2p] a successful reorg is found, begin to deal with {len(side_branches)} side branches')
+                #logger.info(f'[p2p] a successful reorg is found, begin to deal with {len(side_branches)} side branches')
 
                 for branch_chain in side_branches:
                     #logger.info(f'[p2p] number of blocks before slim side branch: {len(branch_chain.chain)}')
