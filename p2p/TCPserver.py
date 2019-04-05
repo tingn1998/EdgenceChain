@@ -254,12 +254,13 @@ class TCPHandler(socketserver.BaseRequestHandler):
         new_blocks = [block for block in blocks if not Block.locate_block(block.id, self.active_chain, self.side_branches)[0]]
         logger.info(f'[p2p] {len(new_blocks)} of {len(blocks)} blocks from {peer} is new')
 
-        if not new_blocks:
-            logger.info('[p2p] initial block download complete')
-            self.ibd_done.set()
-            return
-        else:
-            self.ibd_done.clear()
+        #if not new_blocks:
+        #    logger.info('[p2p] initial block download complete')
+        #    self.ibd_done.set()
+        #    return
+        #else:
+        #    self.ibd_done.clear()
+
         if not TCPHandler.check_blocks_headers(new_blocks):
             return
 

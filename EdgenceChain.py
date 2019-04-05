@@ -165,11 +165,10 @@ class EdgenceChain(object):
 
                         if ret != 0:
                             logger.info(f'cannot send data to itself, and its port is {Params.PORT_CURRENT}')
-
-
-                        #logger.info(f'[EdgenceChain] send BlocksSyncGet to itself')
                     else:
-                        logger.info(f'[EdgenceChain] recv nothing from peer {peer}')
+                        logger.info(f'[EdgenceChain] recv no new blocks when in initial_block_download from peer {peer}, and waiting for finishing')
+                        time.sleep(Params.TIME_BETWEEN_BLOCKS_IN_SECS_TARGET)
+                        self.ibd_done.set()
                 except Exception as e:
                     #logger.exception(f'Error: {repr(e)}, and remove dead peer {peer}')
                     if peer in peers:
