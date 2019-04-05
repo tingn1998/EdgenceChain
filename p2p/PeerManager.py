@@ -161,6 +161,8 @@ class PeerManager(object):
         for peerstate in self.peerstate_list:
             peers.append(peerstate.peer)
 
+        return peers
+
 
 
 
