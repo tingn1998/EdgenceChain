@@ -530,7 +530,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
     def handlePeerExtendGet(self, peer_samples: Iterable[Peer], peer: Peer):
-        #logger.info(f"[p2p] received {len(peer_samples)} peers from peer {peer}")
         peer_samples.append(peer)
         for peer_sample in peer_samples:
             if not isinstance(peer_sample, Peer):
@@ -546,8 +545,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
             if Utils.is_peer_valid(peer_sample):
                 with self.peers_lock:
                     self.peerManager.add(peer_sample)
-                #logger.info(f'[p2p] add peer {peer_sample} into peer list')
-                #Peer.save_peers(self.peers)
             else:
                 self.peerManager.block(peer_sample)
 

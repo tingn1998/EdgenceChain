@@ -167,9 +167,9 @@ class Utils(object):
                 except:
                     pass
                 if not itself:
-                    logger.info(f'[utils] succeed in sending to {peer} data about {Actions.num2name[str(data.action)] if hasattr(data, "action") else None}'
-                            f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
-                    pass
+                    if hasattr(data, "action") and data.action != 10:
+                        logger.info(f'[utils] succeed in sending to {peer} data about {Actions.num2name[str(data.action)]}'
+                                f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
                 return 0
     @classmethod
     def is_peer_valid(cls, peer) -> bool:
