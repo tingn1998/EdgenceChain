@@ -383,6 +383,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
     def handleUTXO4Addr(self, addr: str, peer: Peer):
         #with self.chain_lock:
+        logger.info(f'handle UTXO4Addr request from {peer}')
         utxos4addr = [u for u in self.utxo_set.utxoSet.values() if u.to_address == addr]
 
         message = Message(Actions.UTXO4AddrRev, utxos4addr, Params.PORT_CURRENT)
@@ -392,6 +393,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
     def handleBalance4Addr(self, addr: str, peer: Peer):
 
         #with self.chain_lock:
+        logger.info(f'handle Balance4Addr request from {peer}')
         utxos4addr = [u for u in self.utxo_set.utxoSet.values() if u.to_address == addr]
         val = sum(utxo.value for utxo in utxos4addr)
 
