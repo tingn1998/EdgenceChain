@@ -14,6 +14,7 @@ from ds.BaseUTXO_Set import BaseUTXO_Set
 from ds.TxIn import TxIn
 from ds.TxOut import TxOut
 from ds.BaseMemPool import BaseMemPool
+from ds.BaseBlockChain import BaseBlockChain
 
 
 
@@ -84,6 +85,7 @@ class Transaction(NamedTuple):
     def validate_txn(self,
                      utxo_set: BaseUTXO_Set,
                      mempool: BaseMemPool = None,
+                     active_chain: BaseBlockChain = None,
                      as_coinbase: bool = False,
                      siblings_in_block: Iterable[NamedTuple] = None,  #object
                      allow_utxo_from_mempool: bool = True,
@@ -115,16 +117,6 @@ class Transaction(NamedTuple):
                 raise TxUnlockError("Signature doesn't match")
             return True        
 
-        def get_current_height(chainfile=Params.CHAIN_FILE):
-            if not os.path.isfile(chainfile):
-                raise ChainFileLostError('chain file not found')
-            try:
-                with open(chainfile, "rb") as f:
-                    height = int(binascii.hexlify(f.read(4) or b'\x00'), 16)
-            except Exception:
-                logger.exception(f'[ds] read block height failed')
-                return 0
-            return height
 
         self.validate_basics(as_coinbase=as_coinbase)
 
@@ -145,10 +137,11 @@ class Transaction(NamedTuple):
                     f'Could find no UTXO for TxIn [{idx}] for txn: {self.id}',
                     to_orphan=self)
 
-            if utxo.is_coinbase and \
-                    (get_current_height() - utxo.height) < \
-                    Params.COINBASE_MATURITY:
-                raise TxnValidationError(f'Coinbase UTXO not ready for spend')
+            if active_chain is not None:
+                if utxo.is_coinbase and \
+                        (active_chain.height - utxo.height) < \
+                        Params.COINBASE_MATURITY:
+                    raise TxnValidationError(f'Coinbase UTXO not ready for spend')
 
             try:
                 validate_signature_for_spend(txin, utxo)

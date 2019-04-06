@@ -264,7 +264,7 @@ class Block(NamedTuple):
 
         for txn in self.txns[1:]:
             try:
-                txn.validate_txn(utxo_set, mempool, siblings_in_block=self.txns[1:], allow_utxo_from_mempool=False)
+                txn.validate_txn(utxo_set, mempool, active_chain, siblings_in_block=self.txns[1:], allow_utxo_from_mempool=False)
             except TxnValidationError:
                 msg = f"[ds] {txn} failed to validate"
                 logger.exception(msg)
