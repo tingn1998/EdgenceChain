@@ -403,7 +403,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
     def handleTxRev(self, txn: Transaction, peer: Peer):
         if isinstance(txn, Transaction):
-            logger.info(f"[p2p] received txn {txn.id} from peer {peer}")
+            logger.info(f"[p2p] >>>>  received txn {txn.id} from peer {peer}")
             with self.chain_lock:
                 #chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
                 #logger.info(f'####### into chain_lock: {chain_use_id} of handleTxRev')
