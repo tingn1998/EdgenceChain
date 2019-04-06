@@ -363,7 +363,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
             return (
                 (txn, block, height)
                 for height, block in enumerate(chain, 1) for txn in block.txns)
-        #with self.chain_lock:
+
         if txid in self.mempool.mempool:
             status = 0 #f'txn {txid} found in_mempool'
             message = Message(Actions.TxStatusRev, status, Params.PORT_CURRENT)
