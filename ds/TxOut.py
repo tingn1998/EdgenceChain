@@ -12,5 +12,4 @@ class TxOut(NamedTuple):
     # temparary: to_address: str
 
     # define pk_script(scriptPublicKey) here
-    pk_len: int
     pk_script: str

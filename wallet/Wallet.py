@@ -5,7 +5,7 @@ from functools import lru_cache
 import ecdsa
 from base58 import b58encode_check
 
-
+from script import scriptUtils
 
 logging.basicConfig(
     level=getattr(logging, os.environ.get('TC_LOG_LEVEL', 'INFO')),
@@ -36,7 +36,19 @@ class Wallet(object):
 
 		sha = hashlib.sha256(pubkey).digest()
 		ripe = hashlib.new('ripemd160', sha).digest()
-		return str(b58encode_check(b'\x00' + ripe))
+
+		address = b58encode_check(b'\x00' + ripe)
+		address = address if isinstance(address, str) else str(address, encoding="utf-8")
+		return address
+
+	@classmethod
+	def pubkeyhash_to_address(publickey_hash, version=chr(0)) -> str:
+		return scriptUtils.base58.encode_check(version + publickey_hash)
+
+	@classmethod
+	# See: https://en.bitcoin.it/wiki/Technical_background_of_Bitcoin_addresses
+	def publickey_to_address(publickey, version=chr(0)):
+		return scriptUtils.pubkeyhash_to_address(scriptUtils.hash160(publickey), version)
 
 
 
@@ -54,7 +66,7 @@ class Wallet(object):
 				f.write(signing_key.to_string())
 
 		verifying_key = signing_key.get_verifying_key()
-		my_address = Wallet.pubkey_to_address(verifying_key.to_string())
+		my_address = Wallet.publickey_to_address(verifying_key.to_string())
 		logger.info(f"[wallet] your address is {my_address}")
 
 		return cls(signing_key, verifying_key, my_address)

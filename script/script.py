@@ -3,6 +3,13 @@ import struct
 import logging
 import os
 
+from ds.UnspentTxOut import UnspentTxOut
+from ds.OutPoint import OutPoint
+from ds.BaseUTXO_Set import BaseUTXO_Set
+from ds.BaseMemPool import BaseMemPool
+from ds.Transaction import Transaction
+from wallet.Wallet import Wallet
+
 from .bytevector import ByteVector
 from . import opcodes
 
@@ -168,6 +175,14 @@ def _hash_op(stack, func) -> bool:
 # ————————————————————process the signature—————————————————————————
 
 def check_signature(signature, public_key, hash_type, subscript, transaction, input_index) -> bool:
+
+    # build new send message for check process
+    def build_tx_ins(to_spend, signature_script, sequence):
+        return
+
+    def build_spend_message():
+        return
+
     # figure out the hash_type and adjust the signature
     if hash_type == 0:
         hash_type = ord(signature[-1])
@@ -182,17 +197,18 @@ def check_signature(signature, public_key, hash_type, subscript, transaction, in
         for (index, tx_in) in enumerate(transaction.inputs):
             script = ''
             if index == input_index:
-                script = subscript  # find the
+                script = subscript  # get the checked script
 
             # form the new tx_ins
-            tx_in = protocol.TxnIn(tx_in.previous_output, script, tx_in.sequence)
+            # tx_in = protocol.TxnIn(tx_in.previous_output, script, tx_in.sequence)
+            tx_in = build_tx_ins(tx_in.previous_output, script, tx_in.sequence)
             tx_ins.append(tx_in)
 
         tx_outs = transaction.outputs
 
-    # SIGHASH_NONE (other tx_in.sequence = 0, tx_out = [ ])
+    # we can do SIGHASH_NONE (other tx_in.sequence = 0, tx_out = [ ]) here
 
-    # SIGHASH_SINGLE (len(tx_out) = input_index + 1, other outputs = (-1, ''), other tx_in.sequence = 0)
+    # we can do SIGHASH_SINGLE (len(tx_out) = input_index + 1, other outputs = (-1, ''), other tx_in.sequence = 0) here
 
     else:
         raise Exception('Wrong hash type: %d' % hash_type)
@@ -201,12 +217,12 @@ def check_signature(signature, public_key, hash_type, subscript, transaction, in
     if (hash_type & 0x80) == 0x80:
         # print "ANYONE"
         tx_in = transaction.inputs[input_index]
-        tx_ins = [protocol.TxnIn(tx_in.previous_output, subscript, tx_in.sequence)]
+        tx_ins = [build_tx_ins(tx_in.previous_output, subscript, tx_in.sequence)]
 
         tx_outs = transaction.outputs
 
     # build the new message
-    tx_copy = FlexTxn(transaction.version, tx_ins, tx_outs, transaction.lock_time)
+    tx_copy = build_spend_message(transaction.version, tx_ins, tx_outs, transaction.lock_time)
 
     # ——————————————compute the data to verify————————————————
 
@@ -216,7 +232,7 @@ def check_signature(signature, public_key, hash_type, subscript, transaction, in
     # rebuild the data
     payload = tx_copy.binary() + sig_hash
 
-    return  # verify process
+    return util.ecc.verify(payload, public_key, signature)
 
 
 # ————————————————————tool class producing tokens[]——————————————————————————
@@ -378,16 +394,16 @@ class Tokenizer(object):
 
 class Script(object):
 
-    def __init__(self, transaction,  mempool):
+    def __init__(self, utxo_set: BaseUTXO_Set, transaction: Transaction):
+        self._unspend = utxo_set
         self._transaction = transaction
-        self._mempool = mempool
 
     def input_count(self) -> int:
-        return len(self._transaction.inputs)
+        return self._transaction.txins_len
 
     # matching the template(P2PKH or P2PK)
     def script_form(self, output_index) -> str:
-        pk_script = self._transaction.outputs[output_index].pk_script
+        pk_script = self._transaction.txouts[output_index].pk_script
         tokens = Tokenizer(pk_script)
         for (sf, template) in Templates:
             if tokens.match_template(template):
@@ -396,7 +412,7 @@ class Script(object):
 
     # should I use this?(@author ljq)
     def is_standard_script(self, output_index) -> bool:
-        pk_script = self._transaction.outputs[output_index]
+        pk_script = self._transaction.txouts[output_index]
         tokens = Tokenizer(pk_script, expand_verify=False)
         for sf in STANDARD_SCRIPT_FORMS:
             if tokens.match_template(Templates[sf]):
@@ -405,30 +421,30 @@ class Script(object):
 
     @property
     def output_count(self) -> int:
-        return len(self._transaction.outputs)
+        return self._transaction.txouts_len
 
-    def output_address(self, output_index) -> str:
+    def output_address(self, output_index):
 
         # get the script
-        pk_script = self._transaction.outputs[output_index].pk_script
+        pk_script = self._transaction.txouts[output_index].pk_script
         # get tokens for script
         tokens = Tokenizer(pk_script)
 
         # matching the template(P2PKH or P2PK)
         if tokens.match_template(TEMPLATE_PAY_TO_PUBKEY_HASH):
             pubkeyhash = tokens.get_value(2).vector
-            return scriptUtils.pubkeyhash_to_address(pubkeyhash, self._coin.address_version)
+            return Wallet.pubkeyhash_to_address(pubkeyhash, chr(0))
 
         if tokens.match_template(TEMPLATE_PAY_TO_PUBKEY):
             pubkey = tokens.get_value(0).vector
-            return scriptUtils.publickey_to_address(pubkey, self._coin.address_version)
+            return Wallet.publickey_to_address(pubkey, chr(0))
 
         return None
 
     # verify one input: need (idx,pk)
     def verify_input(self, input_index, pk_script) -> bool:
 
-        input = self._transaction.inputs[input_index]
+        input = self._transaction.txins[input_index]
         # ——————————————————————do process function！———————————————————————
         return self.process(input.signature_script, pk_script, self._transaction, input_index)
 
@@ -436,15 +452,15 @@ class Script(object):
         """Return True if all transaction inputs can be verified against their
            previous output."""
 
-        for i in range(0, len(self._transaction.inputs)):
+        for i in range(0, len(self._transaction.txins_len)):
 
             # ignore the coin_base (generation transaction input)
             if self._transaction.index == 0 and i == 0:
                 continue
 
             # verify the input with its previous output
-            previous_output = self._transaction.previous_output(i)
-            if not self.verify_input(i, previous_output.pk_script):  # get the previous output's pk_script
+            utxo_output = self._unspend(i)
+            if not self.verify_input(i, utxo_output.pk_script):  # get the previous output's pk_script
                 # print "INVALID:", self._transaction.hash.encode('hex'), i # check for this
                 logger.exception(f'[script] script verification wrong in Script part!')
                 return False
@@ -612,7 +628,8 @@ class Script(object):
 
             ### Bitwise Logic Operations
 
-            elif opcode == opcodes.OP_EQUAL:  # !!it's important for P2PKH
+            # !!it's important for P2PKH
+            elif opcode == opcodes.OP_EQUAL:
                 if not _math_op(stack, lambda x1, x2: bool(x1 == x2), False):
                     return False
 
@@ -722,7 +739,7 @@ class Script(object):
 
             # see: https://en.bitcoin.it/wiki/OP_CHECKSIG
 
-            ### !!Begin to check for P2PKH!!
+            ### !!Begin to check signature for P2PKH!!
 
             elif opcode == opcodes.OP_CHECKSIG:  # check and remove thing from the stack
                 if len(stack) < 2: return False
@@ -735,6 +752,7 @@ class Script(object):
                         return False
                     return True
 
+                # check and build new script
                 subscript = tokens.get_subscript(last_codeseparator, filter)
 
                 # the public_key and signature is the value remains in the stack
@@ -748,58 +766,58 @@ class Script(object):
                 else:
                     stack.append(Zero)
 
-            # This part checks the opcode for Muti-process
+            # This part checks the opcode for Muti-process!!!!!
             # We don't use this part due to our plan
             # and it's easy to add this part.
-            elif opcode == opcodes.OP_CHECKMULTISIG:
-                if len(stack) < 2: return False
-
-                # get all the public keys
-                count = stack.pop().value
-                if len(stack) < count: return False
-                public_keys = [stack.pop() for i in range(count)]
-
-                if len(stack) < 1: return False
-
-                # get all the signautres
-                count = stack.pop().value
-                if len(stack) < count: return False
-                signatures = [stack.pop() for i in range(count)]
-
-                # due to a bug in the original client, discard an extra operand
-                if len(stack) < 1: return False
-                stack.pop()
-
-                # remove the signature and code separators for subscript
-                def filter(opcode, bytes, value):
-                    if opcode == opcodes.OP_CODESEPARATOR:
-                        return False
-                    if opcode == Tokenizer.OP_LITERAL and isinstance(value, str) and value in signatures:
-                        return False
-                    return True
-
-                subscript = tokens.get_subscript(last_codeseparator, filter)
-
-                matched = dict()
-                for signature in signatures:
-
-                    # do any remaining public keys work?
-                    for public_key in public_keys:
-                        if check_signature(signature, public_key, hash_type, subscript, transaction, input_index):
-                            break
-                    else:
-                        public_key is None
-
-                    # record which public key and remove from future canidate
-                    if public_key is not None:
-                        matched[signature] = public_key
-                        public_keys.remove(public_key)
-
-                # did each signature have a matching public key?
-                if len(matched) == len(signatures):
-                    stack.append(One)
-                else:
-                    stack.append(Zero)
+            # elif opcode == opcodes.OP_CHECKMULTISIG:
+            #     if len(stack) < 2: return False
+            #
+            #     # get all the public keys
+            #     count = stack.pop().value
+            #     if len(stack) < count: return False
+            #     public_keys = [stack.pop() for i in range(count)]
+            #
+            #     if len(stack) < 1: return False
+            #
+            #     # get all the signautres
+            #     count = stack.pop().value
+            #     if len(stack) < count: return False
+            #     signatures = [stack.pop() for i in range(count)]
+            #
+            #     # due to a bug in the original client, discard an extra operand
+            #     if len(stack) < 1: return False
+            #     stack.pop()
+            #
+            #     # remove the signature and code separators for subscript
+            #     def filter(opcode, bytes, value):
+            #         if opcode == opcodes.OP_CODESEPARATOR:
+            #             return False
+            #         if opcode == Tokenizer.OP_LITERAL and isinstance(value, str) and value in signatures:
+            #             return False
+            #         return True
+            #
+            #     subscript = tokens.get_subscript(last_codeseparator, filter)
+            #
+            #     matched = dict()
+            #     for signature in signatures:
+            #
+            #         # do any remaining public keys work?
+            #         for public_key in public_keys:
+            #             if check_signature(signature, public_key, hash_type, subscript, transaction, input_index):
+            #                 break
+            #         else:
+            #             public_key is None
+            #
+            #         # record which public key and remove from future canidate
+            #         if public_key is not None:
+            #             matched[signature] = public_key
+            #             public_keys.remove(public_key)
+            #
+            #     # did each signature have a matching public key?
+            #     if len(matched) == len(signatures):
+            #         stack.append(One)
+            #     else:
+            #         stack.append(Zero)
 
             elif opcode == opcodes.OP_RESERVED:
                 return False

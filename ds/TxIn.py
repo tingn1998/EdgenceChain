@@ -18,7 +18,6 @@ class TxIn(NamedTuple):
     # define scriptSig and len here
     # the scriptSig which un locks the TxOut for spending.
 
-    sig_len: int
     signature_script: str
 
     # A sender-defined sequence number which allows us replacement of the txn

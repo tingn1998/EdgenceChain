@@ -9,14 +9,17 @@ class UnspentTxOut(NamedTuple):
 
     value: int
 
-    # temparary: to_address: str
+    # temprary: we need tx hash here；
+    # txn_hash: str
 
-    # script for checking
-    pk_script: str
+    to_address: str
 
     # The ID of the transaction this output belongs to.
     txid: str
     txout_idx: int
+
+    # pk_script(scriptPublicKey) for verify the transaction
+    pk_script: str
 
     # Did this TxOut from from a coinbase transaction?
     is_coinbase: bool
@@ -28,3 +31,5 @@ class UnspentTxOut(NamedTuple):
     @property
     def outpoint(self):
         return OutPoint(self.txid, self.txout_idx)
+
+

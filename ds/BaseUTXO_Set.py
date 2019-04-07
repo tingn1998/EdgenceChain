@@ -13,3 +13,6 @@ class BaseUTXO_Set(object):
 
     def find_utxo_in_list(cls, txin, txns):
        pass
+
+    def validate_txn(self, txn, mempool, as_coinbase, siblings_in_block, allow_utxo_from_mempool):
+        pass

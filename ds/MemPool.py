@@ -43,7 +43,6 @@ class MemPool(BaseMemPool):
         return UnspentTxOut(
             *txout, txid=txid, is_coinbase=False, height=-1, txout_idx=idx)
 
-
     def select_from_mempool(self, block: Block, utxo_set: UTXO_Set) -> Block:
         """Fill a Block with transactions from the mempool."""
         added_to_block = set()
@@ -94,15 +93,14 @@ class MemPool(BaseMemPool):
 
         return block
 
-
     def add_txn_to_mempool(self, txn: Transaction, utxo_set: BaseUTXO_Set) -> bool:
         if txn.id in self.mempool:
             logger.info(f'[ds] txn {txn.id} already seen')
             return None
 
         try:
-            # utxo_set contains the scriptSig for cheking process
-            txn.validate_txn(utxo_set, self.mempool)
+            # utxo_set contains the scriptSig for checking process
+            utxo_set.validate_txn(txn, self.mempool)
 
         except TxnValidationError as e:
             if e.to_orphan:
@@ -116,4 +114,3 @@ class MemPool(BaseMemPool):
             self.mempool[txn.id] = txn
 
             return True
-

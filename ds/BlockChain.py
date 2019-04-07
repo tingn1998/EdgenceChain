@@ -64,7 +64,8 @@ class BlockChain(BaseBlockChain):
         logger.info(f'[ds] block {block.id} disconnected, recover transactions and UTXOs by it')
         return self.chain.pop()
 
-    # return values of connect_block: 1. True means success but no reorg;
+    # return values of connect_block:
+    # 1. True means success but no reorg;
     # 2. False means unsuccess;
     # 3. -1 means success and reorg
     def connect_block(self, block: Block, active_chain: BaseBlockChain, side_branches: Iterable[BaseBlockChain], \
