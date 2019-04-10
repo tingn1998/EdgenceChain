@@ -183,7 +183,7 @@ def _hash_op(stack, func) -> bool:
 
 def check_signature_without_hashtype(signature, public_key, transaction, input_index) -> bool:
     """
-    this Function check the message with no hsahtype and realize just the method SIGHASH_ALL
+    this Function check the message with no hash_type and realize just the method SIGHASH_ALL
     """
     # build new send message for check process
     def build_spend_message(to_spend, pk, sequence, txouts):
@@ -203,18 +203,80 @@ def check_signature_without_hashtype(signature, public_key, transaction, input_i
     try:
         # build the new message
         tx_copy = build_spend_message(txin.to_spend, public_key, transaction.txouts)
-        verifying_key.verify(signature, tx_copy)
+        valid = verifying_key.verify(signature, tx_copy)
     except Exception:
-        logger.exception(f'[ds] Key verification failed')
+        logger.exception(f'[script] Key verification failed')
         raise TxUnlockError("Signature doesn't match")
 
-    return True
+    return valid
 
 
 def check_signature(signature, public_key, hash_type, subscript, transaction, input_index) -> bool:
-    # this function check the signature with the hash type
+    """
+    this function check the signature with the hash type and need to build txn with hash_type.
+    """
+    def build_txn_ins():
 
-    return
+        return
+
+    def build_spend_message():
+
+        return
+
+
+    if hash_type == 0:
+        hash_type = ord(signature[-1])
+    signature = signature[:-1]
+
+    # SIGHASH_ALL
+    if (hash_type & 0x1f) == 0x01 or hash_type == 0:
+        # print "ALL"
+        tx_ins = []
+        for (index, tx_in) in enumerate(transaction.txins):
+            script = ''
+            if index == input_index:
+                script = subscript
+
+            tx_in = build_txn_ins(tx_in.previous_output, script, tx_in.sequence)
+            tx_ins.append(tx_in)
+
+        tx_outs = transaction.outputs
+
+    # SIGHASH_NONE (other tx_in.sequence = 0, tx_out = [ ])
+    elif (hash_type & 0x1f) == 0x02:
+        tx_ins = []
+    # SIGHASH_SINGLE (len(tx_out) = input_index + 1, other outputs = (-1, ''), other tx_in.sequence = 0)
+    elif (hash_type & 0x1f) == 0x03:
+        tx_ins = []
+    else:
+        raise Exception('unknown hash type: %d' % hash_type)
+
+    # SIGHASH_ANYONECANPAY
+    if (hash_type & 0x80) == 0x80:
+
+        tx_in = transaction.inputs[input_index]
+        tx_ins = build_txn_ins()
+
+        tx_outs = transaction.outputs
+
+    try:
+        tx_copy = build_spend_message()
+
+        # rebuild the message
+        sig_hash = struct.pack('<I', hash_type)
+        payload = tx_copy.binary() + sig_hash
+
+        # get the key for verify
+        verifying_key = ecdsa.VerifyingKey.from_string(
+            public_key, curve=ecdsa.SECP256k1)
+
+        verifying_key.verify(signature, payload)
+
+    except Exception:
+        logger.exception(f'[script] Key verification failed')
+        raise TxUnlockError("Signature doesn't match")
+
+    return True
 
 
 # ————————————————————tool class producing tokens[]——————————————————————————
@@ -320,14 +382,9 @@ class Tokenizer(object):
                     format = ['<B', '<H', '<I'][opcode - opcodes.OP_PUSHDATA1]
                     length = struct.unpack(format, script[:op_length])[0]
                     bytes += script[:op_length]
-                    script = script[op_length:]  # pop the data from script by length
+                    script = script[op_length:]
+                    # pop the data from script by length
 
-                value = ByteVector(vector=script[:length])
-                bytes += script[:length]
-                script = script[length:]
-                if len(value) != length:
-                    raise Exception('not enough script for literal')
-                opcode = Tokenizer.OP_LITERAL
 
             elif opcode == opcodes.OP_1NEGATE:
                 opcode = Tokenizer.OP_LITERAL
@@ -741,8 +798,10 @@ class Script(object):
                 # the public_key and signature is the value remains in the stack
                 public_key = stack.pop().vector
                 signature = stack.pop().vector
+
                 # use the check_signature defined in this package
-                valid = check_signature(signature, public_key, hash_type, subscript, transaction, input_index)
+                # valid = check_signature(signature, public_key, hash_type, subscript, transaction, input_index)
+                valid = check_signature_without_hashtype(signature, public_key, transaction, input_index)
 
                 if valid:
                     stack.append(One)  # the verify process is successful
