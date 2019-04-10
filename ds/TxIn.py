@@ -11,11 +11,7 @@ class TxIn(NamedTuple):
 
     # temparary: OutPoint = NamedTuple('OutPoint', [('txid', str), ('txout_idx', int)]) address and index.
 
-    # temparary: The (signature, pubkey) pair which unlocks the TxOut for spending.
-    # temparary: unlock_sig: bytes
-    # temparary: unlock_pk: bytes
-
-    # define scriptSig and len here
+    # define scriptSig here
     # the scriptSig which un locks the TxOut for spending.
 
     signature_script: str

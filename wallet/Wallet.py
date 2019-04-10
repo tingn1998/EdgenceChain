@@ -22,7 +22,9 @@ class Wallet(object):
 
 	def __init__(self, signing_key, verifying_key, my_address):
 
+		# private key
 		self.signing_key = signing_key
+		# public key
 		self.verifying_key  = verifying_key
 		self.my_address = my_address
 
@@ -66,7 +68,7 @@ class Wallet(object):
 				f.write(signing_key.to_string())
 
 		verifying_key = signing_key.get_verifying_key()
-		my_address = Wallet.publickey_to_address(verifying_key.to_string())
+		my_address = Wallet.pubkey_to_address(verifying_key.to_string())
 		logger.info(f"[wallet] your address is {my_address}")
 
 		return cls(signing_key, verifying_key, my_address)

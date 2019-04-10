@@ -9,17 +9,12 @@ class UnspentTxOut(NamedTuple):
 
     value: int
 
-    # temprary: we need tx hash here；
-    # txn_hash: str
-
-    to_address: str
+    # pk_script(scriptPublicKey) for verify the transaction
+    # pk_script: str
 
     # The ID of the transaction this output belongs to.
     txid: str
     txout_idx: int
-
-    # pk_script(scriptPublicKey) for verify the transaction
-    pk_script: str
 
     # Did this TxOut from from a coinbase transaction?
     is_coinbase: bool

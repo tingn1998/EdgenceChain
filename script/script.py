@@ -1,13 +1,20 @@
+import binascii
 import inspect
 import struct
 import logging
 import os
 
+from ecdsa import ecdsa
+
 from ds.UnspentTxOut import UnspentTxOut
 from ds.OutPoint import OutPoint
+from ds.TxIn import TxIn
+from ds.TxOut import TxOut
 from ds.BaseUTXO_Set import BaseUTXO_Set
 from ds.BaseMemPool import BaseMemPool
 from ds.Transaction import Transaction
+from utils import Utils
+from utils.Errors import TxUnlockError
 from wallet.Wallet import Wallet
 
 from .bytevector import ByteVector
@@ -174,65 +181,40 @@ def _hash_op(stack, func) -> bool:
 
 # ————————————————————process the signature—————————————————————————
 
-def check_signature(signature, public_key, hash_type, subscript, transaction, input_index) -> bool:
-
+def check_signature_without_hashtype(signature, public_key, transaction, input_index) -> bool:
+    """
+    this Function check the message with no hsahtype and realize just the method SIGHASH_ALL
+    """
     # build new send message for check process
-    def build_tx_ins(to_spend, signature_script, sequence):
-        return
+    def build_spend_message(to_spend, pk, sequence, txouts):
 
-    def build_spend_message():
-        return
+        spend_msg = Utils.sha256d(
+            Utils.serialize(to_spend) + str(sequence) +
+            binascii.hexlify(pk).decode() + Utils.serialize(txouts)).encode()
 
-    # figure out the hash_type and adjust the signature
-    if hash_type == 0:
-        hash_type = ord(signature[-1])
-    signature = signature[:-1]
+        return spend_msg
 
-    # print(hash_type)
+    txin = transaction.txins[input_index]
 
-    # SIGHASH_ALL
-    if (hash_type & 0x1f) == 0x01 or hash_type == 0:
-        # print "ALL"
-        tx_ins = []
-        for (index, tx_in) in enumerate(transaction.inputs):
-            script = ''
-            if index == input_index:
-                script = subscript  # get the checked script
+    # get the key for verify
+    verifying_key = ecdsa.VerifyingKey.from_string(
+        public_key, curve=ecdsa.SECP256k1)
 
-            # form the new tx_ins
-            # tx_in = protocol.TxnIn(tx_in.previous_output, script, tx_in.sequence)
-            tx_in = build_tx_ins(tx_in.previous_output, script, tx_in.sequence)
-            tx_ins.append(tx_in)
+    try:
+        # build the new message
+        tx_copy = build_spend_message(txin.to_spend, public_key, transaction.txouts)
+        verifying_key.verify(signature, tx_copy)
+    except Exception:
+        logger.exception(f'[ds] Key verification failed')
+        raise TxUnlockError("Signature doesn't match")
 
-        tx_outs = transaction.outputs
+    return True
 
-    # we can do SIGHASH_NONE (other tx_in.sequence = 0, tx_out = [ ]) here
 
-    # we can do SIGHASH_SINGLE (len(tx_out) = input_index + 1, other outputs = (-1, ''), other tx_in.sequence = 0) here
+def check_signature(signature, public_key, hash_type, subscript, transaction, input_index) -> bool:
+    # this function check the signature with the hash type
 
-    else:
-        raise Exception('Wrong hash type: %d' % hash_type)
-
-    # SIGHASH_ANYONECANPAY
-    if (hash_type & 0x80) == 0x80:
-        # print "ANYONE"
-        tx_in = transaction.inputs[input_index]
-        tx_ins = [build_tx_ins(tx_in.previous_output, subscript, tx_in.sequence)]
-
-        tx_outs = transaction.outputs
-
-    # build the new message
-    tx_copy = build_spend_message(transaction.version, tx_ins, tx_outs, transaction.lock_time)
-
-    # ——————————————compute the data to verify————————————————
-
-    # compute the hash value of the signature
-    sig_hash = struct.pack('<I', hash_type)  # str type
-
-    # rebuild the data
-    payload = tx_copy.binary() + sig_hash
-
-    return util.ecc.verify(payload, public_key, signature)
+    return
 
 
 # ————————————————————tool class producing tokens[]——————————————————————————
@@ -459,7 +441,8 @@ class Script(object):
                 continue
 
             # verify the input with its previous output
-            utxo_output = self._unspend(i)
+            input = self._transaction.txins[i]
+            utxo_output = self._unspend.get().get(input.to_spend)
             if not self.verify_input(i, utxo_output.pk_script):  # get the previous output's pk_script
                 # print "INVALID:", self._transaction.hash.encode('hex'), i # check for this
                 logger.exception(f'[script] script verification wrong in Script part!')
