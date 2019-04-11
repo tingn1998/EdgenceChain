@@ -1,44 +1,38 @@
-import hashlib
-
-from base58 import b58encode_check
-
+import unittest
 from script import script
-from script import scriptBuild
 
-import ecdsa
+class TestScriptTransactions(unittest.TestCase):
+
+    def check_script(self, script, output):
+        # for each output, add the literal and do checkverify
+        if output:
+            for o in reversed(output):
+                if isinstance(o, int):
+                    # o is a signed int so it needs a bit more
+                    length = (o.bit_length() + 7 + 1) // 8
+                    script += length.to_bytes(1, 'big') + o.to_bytes(length, 'big', signed=True)
+                elif isinstance(o, bytes):
+                    script += len(o).to_bytes(1, 'big') + o
+                else:
+                    raise Exception()
+                script += script.opcodes.OP_EQUALVERIFY.to_bytes(1, 'big')
+
+        # make sure the stack depth is 0 and return true
+        script += (
+                script.opcodes.OP_DEPTH.to_bytes(1, 'big') +
+                b'\x00' +
+                script.opcodes.OP_EQUALVERIFY.to_bytes(1, 'big') +
+                script.opcodes.OP_TRUE.to_bytes(1, 'big')
+        )
+
+        # run the script
+        result = script.Script.process(b'', script, None, None)
+        # check the output (None indicates expected failure)
+        if output is None:
+            self.assertFalse(result)
+        else:
+            self.assertTrue(result)
 
 
-def test_Tokenizer(my_addr):
-    pk_script = scriptBuild.get_script(my_addr)
-    return pk_script
-
-
-def test_de_Tokenizer(pk_script):
-    return script.Tokenizer(pk_script)
-
-
-def pubkey_to_address(pubkey: bytes) -> str:
-    if 'ripemd160' not in hashlib.algorithms_available:
-        raise RuntimeError('missing ripemd160 hash algorithm')
-
-    sha = hashlib.sha256(pubkey).digest()
-    ripe = hashlib.new('ripemd160', sha).digest()
-
-    address = b58encode_check(b'\x00' + ripe)
-    address = address if isinstance(address, str) else str(address, encoding="utf-8")
-    return address
-
-
-# begin test
-signing_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
-verifying_key = signing_key.get_verifying_key()
-
-my_address = verifying_key.to_string()
-
-pk_script = test_Tokenizer(my_address)
-print(pk_script)
-
-test_script = 'v\xa9\x14\xd6Kqr\x9aPM#\xd9H\x88\xd3\xf7\x12\xd5WS\xd5\xd6"\x88\xac'
-# de_script = test_de_Tokenizer(test_script)
-print(script.Tokenizer(test_script))
-
+suite = unittest.TestLoader().loadTestsFromTestCase(TestScriptTransactions)
+unittest.TextTestRunner(verbosity=2).run(suite)

@@ -44,15 +44,7 @@ def get_signature_script(signature, pk):
     # add hash_type
     sig = signature + b'\x01'
 
-    # get signature len
-    sig_len = len(signature)
-
-    # get pk_script len
-    pk_len = len(pk)
-
-    signature_script = sig_len.to_bytes(1, 'big') + sig + pk_len.to_bytes(1, 'big') + pk
-
-    return binascii.hexlify(signature_script)
+    return get_signature_script_without_hashtype(sig, pk)
 
 
 class Script:

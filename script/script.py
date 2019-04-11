@@ -6,12 +6,7 @@ import os
 
 from ecdsa import ecdsa
 
-from ds.UnspentTxOut import UnspentTxOut
-from ds.OutPoint import OutPoint
-from ds.TxIn import TxIn
-from ds.TxOut import TxOut
 from ds.BaseUTXO_Set import BaseUTXO_Set
-from ds.BaseMemPool import BaseMemPool
 from ds.Transaction import Transaction
 from utils import Utils
 from utils.Errors import TxUnlockError
@@ -316,16 +311,16 @@ class Tokenizer(object):
     }
 
     # it's checked by final check-function
-    def get_subscript(self, start_index=0, filter=None) -> str:
-        """The function is used to check the script value with the filter (opcode,bytes,value)"""
-
+    def get_subscript(self, start_index=0, filter=None):
+        """Rebuild the script from `start_index`, filtering using `filter` func.
+        The callable `filter` removes tokens that return False for filter(opcode, bytes, value) where
+        bytes is the original bytes and value is any literal value.
+        """
         output = ''
         for (opcode, bytes, value) in self._tokens[start_index:]:
-            # check the value
-            if filter and not filter(opcode, bytes, value):
+            if filter and not list(filter(opcode, bytes, value)):
                 continue
             output += bytes
-        # return the checked script
         return output
 
     # Given a template, return True if this script matches
@@ -358,51 +353,54 @@ class Tokenizer(object):
 
     # Internal function which parse the script into tokens
     def _process(self, script):
-
+        """Parse the script into tokens.
+        :param script: The script to parse
+        """
         while script:
-
-            # process one code from scripts every time
-            opcode = ord(script[0])
-            bytes = script[0]
+            opcode = script[0]
+            opcode_bytes = script[0].to_bytes(1, 'big')
             script = script[1:]
-
             value = None
             verify = False
 
             if opcode == opcodes.OP_0:
-                value = Zero
+                value = b'\x00'
                 opcode = Tokenizer.OP_LITERAL
 
-            # push data options
             elif 1 <= opcode <= 78:
-                length = opcode
-
+                pushdata_length = opcode
                 if opcodes.OP_PUSHDATA1 <= opcode <= opcodes.OP_PUSHDATA4:
                     op_length = [1, 2, 4][opcode - opcodes.OP_PUSHDATA1]
-                    format = ['<B', '<H', '<I'][opcode - opcodes.OP_PUSHDATA1]
-                    # length = struct.unpack(format, script[:op_length])[0]
-                    bytes += script[:op_length]
+                    pushdata_length = int.from_bytes(script[:op_length], 'little')
+                    opcode_bytes += script[:op_length]
                     script = script[op_length:]
-                    # pop the data from script by length
+
+                # The data to be pushed
+                value = script[:pushdata_length]
+                opcode_bytes += value
+                # Remove the data to be pushed from the script
+                script = script[pushdata_length:]
+                if len(value) != pushdata_length:
+                    raise Exception('The pushdata opcode does not match the length of the data to be pushed')
+                opcode = Tokenizer.OP_LITERAL
 
             elif opcode == opcodes.OP_1NEGATE:
                 opcode = Tokenizer.OP_LITERAL
-                value = ByteVector.from_value(-1)
+                value = int(-1).to_bytes(1, 'big', signed=True)
 
             elif opcode == opcodes.OP_TRUE:
                 opcode = Tokenizer.OP_LITERAL
-                value = ByteVector.from_value(1)
+                value = int(1).to_bytes(1, 'big')
 
             elif opcodes.OP_1 <= opcode <= opcodes.OP_16:
-                value = ByteVector.from_value(opcode - opcodes.OP_1 + 1)
+                value = int(opcode - opcodes.OP_1 + 1).to_bytes(1, 'big')
                 opcode = Tokenizer.OP_LITERAL
 
             elif self._expand_verify and opcode in self._Verify:
                 opcode = self._Verify[opcode]
                 verify = True
 
-            self._tokens.append((opcode, bytes, value))
-
+            self._tokens.append((opcode, opcode_bytes, value))
             if verify:
                 self._tokens.append((opcodes.OP_VERIFY, '', None))
 
@@ -420,11 +418,10 @@ class Tokenizer(object):
         output = []
         for (opcode, bytes, value) in self._tokens:
             if opcode == Tokenizer.OP_LITERAL:
-                output.append(value.vector.encode('hex'))
+                output.append(str(int.from_bytes(value, 'big')))
             else:
                 if bytes:
-                    output.append(opcodes.get_opcode_name(ord(bytes[0])))
-
+                    output.append(opcodes.get_opcode_name(bytes[0]))
         return " ".join(output)
 
 

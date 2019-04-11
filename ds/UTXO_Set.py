@@ -18,7 +18,7 @@ from utils.Errors import TxUnlockError
 from utils.Errors import TxnValidationError
 from utils.Errors import ChainFileLostError
 
-from .. import script
+from script import script
 
 logging.basicConfig(
     level=getattr(logging, os.environ.get('TC_LOG_LEVEL', 'INFO')),
