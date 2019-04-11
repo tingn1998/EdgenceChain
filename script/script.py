@@ -290,7 +290,7 @@ def check_signature(signature, public_key, hash_type, subscript, transaction, in
 
 class Tokenizer(object):
     """
-    Tokenizes a script into tokens for the checking process of stack.
+    Tokenize a script into tokens for the checking process of stack.
     """
 
     OP_LITERAL = 0x1ff
@@ -380,11 +380,10 @@ class Tokenizer(object):
                 if opcodes.OP_PUSHDATA1 <= opcode <= opcodes.OP_PUSHDATA4:
                     op_length = [1, 2, 4][opcode - opcodes.OP_PUSHDATA1]
                     format = ['<B', '<H', '<I'][opcode - opcodes.OP_PUSHDATA1]
-                    length = struct.unpack(format, script[:op_length])[0]
+                    # length = struct.unpack(format, script[:op_length])[0]
                     bytes += script[:op_length]
                     script = script[op_length:]
                     # pop the data from script by length
-
 
             elif opcode == opcodes.OP_1NEGATE:
                 opcode = Tokenizer.OP_LITERAL

@@ -48,7 +48,6 @@ class Wallet(object):
 		return scriptUtils.base58.encode_check(version + publickey_hash)
 
 	@classmethod
-	# See: https://en.bitcoin.it/wiki/Technical_background_of_Bitcoin_addresses
 	def publickey_to_address(publickey, version=chr(0)):
 		return scriptUtils.pubkeyhash_to_address(scriptUtils.hash160(publickey), version)
 

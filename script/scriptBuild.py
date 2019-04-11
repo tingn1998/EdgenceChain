@@ -1,7 +1,7 @@
+import binascii
 from math import log
 
 from . import opcodes
-from . import scriptUtils
 
 
 def sizeof(n):
@@ -10,13 +10,49 @@ def sizeof(n):
     return int(log(n, 256)) + 1
 
 
-def get_script(to_addr):
+def get_pk_script(to_addr):
+    # just use the P2PKH method
     pubkey_script = Script('OP_DUP OP_HASH160').parse()
     pubkey_script += len(to_addr).to_bytes(1, 'big')
     pubkey_script += to_addr
     pubkey_script += Script('OP_EQUALVERIFY OP_CHECKSIG').parse()
 
     return pubkey_script
+
+
+def get_signature_script_without_hashtype(signature, pk):
+    """
+    this version is just for checking our process is good enough to get the message.
+    """
+
+    # get signature len
+    sig_len = len(signature)
+
+    # get pk_script len
+    pk_len = len(pk)
+
+    signature_script = sig_len.to_bytes(1, 'big') + signature + pk_len.to_bytes(1, 'big') + pk
+
+    return binascii.hexlify(signature_script)
+
+
+def get_signature_script(signature, pk):
+    """
+    if we use signature with a hash_type we need to check in our code.
+    eg : hash_type = b'\x01' (SIGHASH_ALL)and the final signature is (sig + hash_type) and we need to spilt it out later.
+    """
+    # add hash_type
+    sig = signature + b'\x01'
+
+    # get signature len
+    sig_len = len(signature)
+
+    # get pk_script len
+    pk_len = len(pk)
+
+    signature_script = sig_len.to_bytes(1, 'big') + sig + pk_len.to_bytes(1, 'big') + pk
+
+    return binascii.hexlify(signature_script)
 
 
 class Script:
