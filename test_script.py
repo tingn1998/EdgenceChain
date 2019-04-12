@@ -1,5 +1,6 @@
 import unittest
-from script import script
+from script.script import Script
+
 
 class TestScriptTransactions(unittest.TestCase):
 
@@ -26,7 +27,7 @@ class TestScriptTransactions(unittest.TestCase):
         )
 
         # run the script
-        result = script.Script.process(b'', script, None, None)
+        result = Script.process(b'', script, None, None)
         # check the output (None indicates expected failure)
         if output is None:
             self.assertFalse(result)
@@ -34,5 +35,8 @@ class TestScriptTransactions(unittest.TestCase):
             self.assertTrue(result)
 
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestScriptTransactions)
-unittest.TextTestRunner(verbosity=2).run(suite)
+# suite = unittest.TestLoader().loadTestsFromTestCase(TestScriptTransactions)
+# unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()

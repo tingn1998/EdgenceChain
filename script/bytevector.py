@@ -6,13 +6,12 @@ self.__value = get_value(vector)  # Convert a byte-vector string into an integer
 Class ByteVector is designed for operating the stack value with the vector.
 """
 
-
 import operator
+from filecmp import cmp
 
 __all__ = ['ByteVector']
 
 
-# change int into string vector
 def get_vector(value):
     'Convert an integer into a byte-vector string.'
 
@@ -38,7 +37,6 @@ def get_vector(value):
     return "".join(chr(c) for c in vector)
 
 
-# change string vector into int
 def get_value(vector):
     'Convert a byte-vector string into an integer'
 
@@ -60,7 +58,6 @@ def get_value(vector):
     return sign * value
 
 
-# this class realize the stack options with the bytevector
 class ByteVector(object):
 
     def __init__(self, vector = ''):
@@ -144,10 +141,10 @@ class ByteVector(object):
         self.set_value(self.value * other.value)
 
     def __idiv__(self, other):
-        self.set_value(operators.truediv(self.value, other.value))
+        self.set_value(operator.truediv(self.value, other.value))
 
     def __itruediv__(self, other):
-        self.set_value(operators.truediv(self.value, other.value))
+        self.set_value(operator.truediv(self.value, other.value))
 
     def __ifloordiv__(self, other):
         self.set_value(self.value // other.value)
@@ -197,7 +194,7 @@ class ByteVector(object):
         return self.value
 
     def __long__(self):
-        return long(self.value)
+        return int(self.value)
 
     def __float__(self):
         return float(self.value)
@@ -212,7 +209,7 @@ class ByteVector(object):
     #    return hex(self.value)
 
     def __repr__(self):
-        return '<ByteVector value=%d vector=%s>' % (self.value, self.vector.encode('hex'))
+        return '<ByteVector value=%d vector=%s>' % (self.value, self.vector)
 
     def __str__(self):
         return repr(self)
@@ -237,7 +234,7 @@ class ByteVector(object):
             return cmp(self.vector, other)
         return cmp(self.value, other.value)
 
-    def __nonzero__(self):
+    def __bool__(self):
         return self.value != 0
 
 

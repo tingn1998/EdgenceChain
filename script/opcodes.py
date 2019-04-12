@@ -386,8 +386,6 @@ RESERVED = frozenset([OP_RESERVED, OP_VER, OP_VERIF, OP_VERNOTIF, OP_RESERVED1,
                       OP_RESERVED2, OP_NOP1, OP_NOP2, OP_NOP3, OP_NOP4,
                       OP_NOP5, OP_NOP6, OP_NOP7, OP_NOP8, OP_NOP9, OP_NOP10])
 
-# matching the bytes and the opcode with a map
-
 OPCODE_NAMES = ['OP_FALSE', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A',
                 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A',
                 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A',
@@ -430,10 +428,7 @@ OPCODE_NAMES = ['OP_FALSE', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A',
                 None, None, None, None, None, None, None, None, None, None,
                 None, 'OP_PUBKEYHASH', 'OP_PUBKEY', 'OP_INVALIDOPCODE']
 
-
-# find and return the opcode_name in the OPCODE_NAMES map using opcode
-def get_opcode_name(opcode) -> str:
-
+def get_opcode_name(opcode):
     if opcode < 0 or opcode > 255:
         raise ValueError('opcode must be 1 byte')
 
@@ -441,17 +436,11 @@ def get_opcode_name(opcode) -> str:
     if name is None: return OPCODE_NAMES[0xff]
     return name
 
-
-# find and return the opcode in the OPCODE_NAMES map using opcode_name
-def get_opcode(opcode_name) -> int:
+def get_opcode(opcode_name):
     return OPCODE_NAMES.index(opcode_name)
 
-
-# check the field of the opcode
-def is_disabled(opcode) -> bool:
+def is_disabled(opcode):
     return opcode in DISABLED
 
-
-# check the field of the opcode
-def is_reserved(opcode) -> bool:
+def is_reserved(opcode):
     return opcode in RESERVED

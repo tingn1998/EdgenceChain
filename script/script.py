@@ -26,14 +26,14 @@ logger = logging.getLogger(__name__)
 __all__ = ['Script', 'Tokenizer']
 
 # Convenient constants used to set the result of stack computing process
-Zero = ByteVector.from_value(0)
-One = ByteVector.from_value(1)
+Zero = b'\x00'
+One = b'\x01'
 
 
 # ————————————————————tool functions———————————————————————
 
 # check whether the opcode is a publickey for P2PK
-def _is_pubkey(opcode, bytes, data) -> bool:
+def _is_pubkey(opcode, bytes, data):
     if opcode != Tokenizer.OP_LITERAL:
         return False
     if len(data) != 65 or data[0] != chr(0x04):
@@ -590,7 +590,7 @@ class Script(object):
                     stack.append(stack[-1])
 
             elif opcode == opcodes.OP_DEPTH:
-                stack.append(ByteVector.from_value(len(stack)))
+                stack.append(len(stack).to_bytes(1, 'big'))
 
             elif opcode == opcodes.OP_DROP:
                 if not _stack_op(stack, lambda x: []):
@@ -610,13 +610,13 @@ class Script(object):
 
             elif opcode == opcodes.OP_PICK:
                 if len(stack) < 2: return False
-                n = stack.pop().value + 1
+                n = int.from_bytes(stack.pop(), 'big') + 1
                 if not (0 <= n <= len(stack)): return False
                 stack.append(stack[-n])
 
             elif opcode == opcodes.OP_ROLL:
                 if len(stack) < 2: return False
-                n = stack.pop().value + 1
+                n = int.from_bytes(stack.pop(), 'big') + 1
                 if not (0 <= n <= len(stack)): return False
                 stack.append(stack.pop(-n))
 
@@ -659,8 +659,10 @@ class Script(object):
             ### Splice Operations
 
             elif opcode == opcodes.OP_SIZE:
-                if len(stack) < 1: return False
-                stack.append(ByteVector.from_value(len(stack[-1])))
+                stack_length = len(stack)
+                if stack_length < 1:
+                    return False
+                stack.append(stack_length.to_bytes(stack_length.bit_length() // 8 + 1, 'big'))
 
             ### Bitwise Logic Operations
 
@@ -672,35 +674,38 @@ class Script(object):
             ### Arithmetic Operations
 
             elif opcode == opcodes.OP_1ADD:
-                if not _math_op(stack, lambda a: a + One):
+                if not _math_op(stack, lambda a: int(int.from_bytes(a, 'big', signed=True) + 1).to_bytes(1, 'big', signed=True)):
                     return False
 
             elif opcode == opcodes.OP_1SUB:
-                if not _math_op(stack, lambda a: a - One):
+                if not _math_op(stack, lambda a: int(int.from_bytes(a, 'big', signed=True) - 1).to_bytes(1, 'big', signed=True)):
                     return False
 
             elif opcode == opcodes.OP_NEGATE:
-                if not _math_op(stack, lambda a: -a):
+                if not _math_op(stack, lambda a: int(-int.from_bytes(a, 'big', signed=True)).to_bytes(1, 'big', signed=True)):
                     return False
 
             elif opcode == opcodes.OP_ABS:
-                if not _math_op(stack, lambda a: abs(a)):
+                if not _math_op(stack, lambda a: int(abs(int.from_bytes(a, 'big', signed=True))).to_bytes(1, 'big', signed=True)):
                     return False
 
             elif opcode == opcodes.OP_NOT:
-                if not _math_op(stack, lambda a: bool(a == 0)):
+                if not _math_op(stack, lambda a: a == 0):
                     return False
 
             elif opcode == opcodes.OP_0NOTEQUAL:
-                if not _math_op(stack, lambda a: bool(a != 0)):
+                if not _math_op(stack, lambda a: a != 0):
                     return False
 
             elif opcode == opcodes.OP_ADD:
-                if not _math_op(stack, lambda a, b: a + b):
+                # TODO: cleaning
+                if not _math_op(stack, lambda a, b: int(int.from_bytes(a, 'big', signed=True) + int.from_bytes(b, 'big', signed=True))
+                        .to_bytes(len(a) + len(b), 'big', signed=True)):
                     return False
 
             elif opcode == opcodes.OP_SUB:
-                if not _math_op(stack, lambda a, b: a - b):
+                if not _math_op(stack, lambda a, b: int(int.from_bytes(a, 'big', signed=True) - int.from_bytes(b, 'big', signed=True))
+                        .to_bytes(len(a), 'big', signed=True)):
                     return False
 
             elif opcode == opcodes.OP_BOOLAND:
@@ -787,8 +792,6 @@ class Script(object):
                     if opcode == Tokenizer.OP_LITERAL and isinstance(value, str) and value == signature:
                         return False
                     return True
-
-                # check and build new script
                 subscript = tokens.get_subscript(last_codeseparator, filter)
 
                 # the public_key and signature is the value remains in the stack
@@ -796,7 +799,10 @@ class Script(object):
                 signature = stack.pop().vector
 
                 # use the check_signature defined in this package
+
+                # when we use the method check_signature() we add param 'hash_type' and 'subscript'
                 # valid = check_signature(signature, public_key, hash_type, subscript, transaction, input_index)
+
                 valid = check_signature_without_hashtype(signature, public_key, transaction, input_index)
 
                 if valid:
@@ -873,7 +879,6 @@ class Script(object):
                 pass
 
             else:
-                # print "UNKNOWN OPCODE: %d" % opcode
                 return False
 
         # check whether the stack process's result remains a True boolean type

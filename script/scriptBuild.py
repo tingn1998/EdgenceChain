@@ -10,7 +10,7 @@ def sizeof(n):
     return int(log(n, 256)) + 1
 
 
-def get_pk_script(to_addr):
+def get_pk_script(to_addr) -> str:
     # just use the P2PKH method
     pubkey_script = Script('OP_DUP OP_HASH160').parse()
     pubkey_script += len(to_addr).to_bytes(1, 'big')
@@ -20,7 +20,7 @@ def get_pk_script(to_addr):
     return pubkey_script
 
 
-def get_signature_script_without_hashtype(signature, pk):
+def get_signature_script_without_hashtype(signature, pk) -> bytes:
     """
     this version is just for checking our process is good enough to get the message.
     """
@@ -36,7 +36,7 @@ def get_signature_script_without_hashtype(signature, pk):
     return binascii.hexlify(signature_script)
 
 
-def get_signature_script(signature, pk):
+def get_signature_script(signature, pk) -> bytes:
     """
     if we use signature with a hash_type we need to check in our code.
     eg : hash_type = b'\x01' (SIGHASH_ALL)and the final signature is (sig + hash_type) and we need to spilt it out later.
