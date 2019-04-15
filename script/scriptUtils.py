@@ -1,5 +1,7 @@
 import hashlib
 
+from math import log
+
 __all__ = ['sha1', 'sha256', 'sha256d', 'ripemd160', 'hash160', 'decode_check', 'encode_check']
 
 
@@ -23,17 +25,7 @@ def ripemd160(data):
 def hash160(data):
     return ripemd160(sha256(data))
 
-
 # —————————————outAddress Check Utils————————————
-
-
-# See: https://en.bitcoin.it/wiki/Technical_background_of_Bitcoin_addresses
-def publickey_to_address(publickey, version=chr(0)):
-    return pubkeyhash_to_address(hash160(publickey), version)
-
-
-def pubkeyhash_to_address(publickey_hash, version=chr(0)) -> str:
-    return encode_check(version + publickey_hash)
 
 
 # Returns the base58 encoding with a 4-byte checksum.
@@ -59,7 +51,6 @@ __b58base = len(__b58chars)
 
 # encode v, which is a string of bytes, to base58.
 def b58encode(v):
-
     long_value = 0
     for (i, c) in enumerate(v[::-1]):
         long_value += (256 ** i) * ord(c)
@@ -85,7 +76,6 @@ def b58encode(v):
 
 # decode v into a string of len bytes
 def b58decode(v, length=None):
-
     long_value = 0
     for (i, c) in enumerate(v[::-1]):
         long_value += __b58chars.find(c) * (__b58base ** i)

@@ -44,16 +44,6 @@ class Wallet(object):
 		return address
 
 	@classmethod
-	def pubkeyhash_to_address(publickey_hash, version=chr(0)) -> str:
-		return scriptUtils.base58.encode_check(version + publickey_hash)
-
-	@classmethod
-	def publickey_to_address(publickey, version=chr(0)):
-		return scriptUtils.pubkeyhash_to_address(scriptUtils.hash160(publickey), version)
-
-
-
-	@classmethod
 	@lru_cache()
 	def init_wallet(cls, path='wallet.dat'):
 		if os.path.exists(path):

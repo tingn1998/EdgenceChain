@@ -24,12 +24,11 @@ from utils.Errors import BlockValidationError
 from utils.Errors import TxnValidationError
 
 from utils.Utils import Utils
-from params.Params import Params
 from ds.MerkleNode import MerkleNode
 from ds.TxIn import TxIn
 from ds.TxOut import TxOut
 from params.Params import Params
-import _thread
+from script import scriptBuild
 from ds.BaseBlockChain import BaseBlockChain
 
 
@@ -84,9 +83,9 @@ class Block(NamedTuple):
             nonce=9051321,
             txns=[Transaction(
                 txins=[TxIn(
-                    to_spend=None, unlock_sig=b'0', unlock_pk=None, sequence=0)],
+                    to_spend=None, signature_script=b'0', sequence=0)],
                 txouts=[TxOut(
-                    value=5000000000, to_address='0000000000000000000000000000000000')], locktime=None)]
+                    value=5000000000, pk_script=scriptBuild.get_pk_script('0000000000000000000000000000000000'))], locktime=None)]
         )
 
 
@@ -244,7 +243,6 @@ class Block(NamedTuple):
                     f'prev block {self.prev_block_hash} not found in any chain',
                     to_orphan=self)
 
-
             # No more validation for a block getting attached to a branch.
             if prev_block_chain_idx != Params.ACTIVE_CHAIN_IDX:
                 return prev_block_chain_idx
@@ -258,7 +256,7 @@ class Block(NamedTuple):
 
         for txn in self.txns[1:]:
             try:
-                txn.validate_txn(utxo_set, mempool, siblings_in_block=self.txns[1:], allow_utxo_from_mempool=False)
+                utxo_set.validate_txn(txn, siblings_in_block=self.txns[1:], allow_utxo_from_mempool=False)
             except TxnValidationError:
                 msg = f"[ds] {txn} failed to validate"
                 logger.exception(msg)

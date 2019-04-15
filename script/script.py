@@ -8,7 +8,7 @@ from ecdsa import ecdsa
 
 from ds.BaseUTXO_Set import BaseUTXO_Set
 from ds.Transaction import Transaction
-from utils import Utils
+from utils.Utils import Utils
 from utils.Errors import TxUnlockError
 from wallet.Wallet import Wallet
 
@@ -468,11 +468,11 @@ class Script(object):
         # matching the template(P2PKH or P2PK)
         if tokens.match_template(TEMPLATE_PAY_TO_PUBKEY_HASH):
             pubkeyhash = tokens.get_value(2).vector
-            return Wallet.pubkeyhash_to_address(pubkeyhash, chr(0))
+            return Wallet.pubkey_to_address(pubkeyhash)
 
         if tokens.match_template(TEMPLATE_PAY_TO_PUBKEY):
             pubkey = tokens.get_value(0).vector
-            return Wallet.publickey_to_address(pubkey, chr(0))
+            return Wallet.pubkey_to_address(pubkey)
 
         return None
 

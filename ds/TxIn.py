@@ -14,7 +14,7 @@ class TxIn(NamedTuple):
     # define scriptSig here
     # the scriptSig which un locks the TxOut for spending.
 
-    signature_script: str
+    signature_script: bytes
 
     # A sender-defined sequence number which allows us replacement of the txn
     # if desired.

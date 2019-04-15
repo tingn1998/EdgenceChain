@@ -10,6 +10,8 @@ from params.Params import Params
 from ds.TxIn import TxIn
 from ds.TxOut import TxOut
 
+from script import scriptBuild
+
 import logging
 import os
 
@@ -34,18 +36,17 @@ class Transaction(NamedTuple):
         return self.txins_len == 1 and self.txins[0].to_spend is None
 
     @classmethod
-    def create_coinbase(cls, pay_to_addr, value, height):
+    def create_coinbase(cls, pay_to_addr, value):
         return cls(
             txins=[TxIn(
                 to_spend=None,
                 # Push current block height into unlock_sig so that this
                 # transaction's ID is unique relative to other coinbase txns.
-                unlock_sig=str(height).encode(),
-                unlock_pk=None,
+                signature_script=b'',
                 sequence=0)],
             txouts=[TxOut(
                 value=value,
-                to_address=pay_to_addr)],
+                pk_script=scriptBuild.get_pk_script(pay_to_addr))],
         )
 
     @property

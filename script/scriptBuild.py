@@ -1,6 +1,8 @@
 import binascii
 from math import log
 
+from base58 import b58decode_check
+
 from . import opcodes
 
 
@@ -10,11 +12,19 @@ def sizeof(n):
     return int(log(n, 256)) + 1
 
 
-def get_pk_script(to_addr) -> str:
+def get_pk_script(to_addr):
+    # decode the address to get the public hash
+    public_key_hash_de = b58decode_check(to_addr)[1:]
+    pk_hash = binascii.hexlify(public_key_hash_de)
+    return make_pk_script(pk_hash)
+
+
+def make_pk_script(pk_hash) -> str:
+
     # just use the P2PKH method
     pubkey_script = Script('OP_DUP OP_HASH160').parse()
-    pubkey_script += len(to_addr).to_bytes(1, 'big')
-    pubkey_script += to_addr
+    pubkey_script += len(pk_hash).to_bytes(1, 'big')
+    pubkey_script += pk_hash
     pubkey_script += Script('OP_EQUALVERIFY OP_CHECKSIG').parse()
 
     return pubkey_script
@@ -31,9 +41,10 @@ def get_signature_script_without_hashtype(signature, pk) -> bytes:
     # get pk_script len
     pk_len = len(pk)
 
-    signature_script = sig_len.to_bytes(1, 'big') + signature + pk_len.to_bytes(1, 'big') + pk
+    signature_script = sig_len.to_bytes(sizeof(sig_len), 'big') + signature + pk_len.to_bytes(sizeof(pk_len),
+                                                                                         'big') + pk
 
-    return binascii.hexlify(signature_script)
+    return signature_script
 
 
 def get_signature_script(signature, pk) -> bytes:

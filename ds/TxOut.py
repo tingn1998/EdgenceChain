@@ -9,4 +9,4 @@ class TxOut(NamedTuple):
     value: int
 
     # define pk_script(scriptPublicKey) here
-    pk_script: str
+    pk_script: bytes

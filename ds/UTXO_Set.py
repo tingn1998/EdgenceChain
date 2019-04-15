@@ -28,7 +28,6 @@ logger = logging.getLogger(__name__)
 
 # UTXO set
 
-
 class UTXO_Set(BaseUTXO_Set):
 
     def __init__(self):

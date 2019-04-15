@@ -10,7 +10,7 @@ class UnspentTxOut(NamedTuple):
     value: int
 
     # pk_script(scriptPublicKey) for verify the transaction
-    # pk_script: str
+    pk_script: bytes
 
     # The ID of the transaction this output belongs to.
     txid: str
