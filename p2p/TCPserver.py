@@ -165,7 +165,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
     def handleBlockstatsReq(self, peer):
         with self.chain_lock:
             height = self.active_chain.height
-            difficulty = self.active_chain.chain[-1].nonce/1000/(self.active_chain.chain[-1].timestamp - self.active_chain.chain[-2].timestamp)
+            difficulty = str(self.active_chain.chain[-1].nonce/1000/(self.active_chain.chain[-1].timestamp - self.active_chain.chain[-2].timestamp))
             tx_pool_size = len(self.mempool.mempool)
 
         blockStats = BlockStats(height, difficulty, tx_pool_size)
