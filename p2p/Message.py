@@ -25,6 +25,10 @@ class Actions:
     PeerExtend = 10
     TopBlocksSyncReq = 11
     TopBlockReq  = 12
+    BlockstatsReq = 13
+    BlockstatsGet = 14
+    BlockAtHeightReq = 15
+
     num2name = {'0':'BlocksSyncReq',
                    '1':'BlocksSyncGet',
                    '2':'TxStatusReq',
@@ -37,7 +41,10 @@ class Actions:
                    '9':'Balance4AddrRev',
                    '10':'PeerExtend',
                    '11':'TopBlocksSyncReq',
-                   '12':'TopBlockReq'}
+                   '12':'TopBlockReq',
+                    '13':'BlockstatsReq',
+                    '14':'BlockStatsGet',
+                    '15':'BlockAtHeightReq'}
 
 
 class Message(NamedTuple):
