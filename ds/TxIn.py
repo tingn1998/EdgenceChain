@@ -8,9 +8,10 @@ class TxIn(NamedTuple):
     # transactions.
     to_spend: Union[OutPoint, None]
 
-    # The (signature, pubkey) pair which unlocks the TxOut for spending.
-    unlock_sig: bytes
-    unlock_pk: bytes
+    # define scriptSig here
+    # the scriptSig which un locks the TxOut for spending.
+
+    signature_script: bytes
 
     # A sender-defined sequence number which allows us replacement of the txn
     # if desired.

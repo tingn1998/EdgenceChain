@@ -22,3 +22,7 @@ class UnspentTxOut(NamedTuple):
     @property
     def outpoint(self):
         return OutPoint(self.txid, self.txout_idx)
+
+    @property
+    def pk_script(self):
+        return self.to_address
