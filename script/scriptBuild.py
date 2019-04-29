@@ -6,6 +6,7 @@ from base58 import b58decode_check
 from . import opcodes
 
 from script import script
+from params.Params import Params
 
 from base58 import b58encode_check
 
@@ -32,6 +33,23 @@ def make_pk_script(pk_hash) -> str:
     pubkey_script += Script('OP_EQUALVERIFY OP_CHECKSIG').parse()
 
     return pubkey_script
+
+
+def get_redeem_script(pubkeys):
+
+    if len(pubkeys) < Params.P2SH_PUBLIC_KEY:
+        raise Exception("Length of the input pubkey is not the same as P2SH_PUBLIC_KEY")
+
+    if Params.P2SH_PUBLIC_KEY < Params.P2SH_VERIFY_KEY:
+        raise Exception("numbers of P2SH_PUBLIC_KEY should be larger than P2SH_VERIFY_KEY")
+
+    redeem_script = Script('OP_'+str(Params.P2SH_VERIFY_KEY)).parse()
+    for pubkey in pubkeys:
+        redeem_script += len(pubkey).to_bytes(1, 'big')
+        redeem_script += pubkey
+    redeem_script += Script('OP_'+str(Params.P2SH_PUBLIC_KEY)+' OP_CHECKMULTISIG').parse()
+
+    return redeem_script
 
 # ——————————————Pk_script2Addr————————————————
 

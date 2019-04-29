@@ -52,7 +52,10 @@ class Params:
     HALVE_SUBSIDY_AFTER_BLOCKS_NUM = int(210_000)
     ACTIVE_CHAIN_IDX = int(0)
 
-    TRIES_MAXIMUM = 1
+    # Script type, we set 0 for P2PKH and 1 for P2SH
+    SCRIPT_TYPE = 0
+    P2SH_VERIFY_KEY = 2
+    P2SH_PUBLIC_KEY = 3
 
     # list of peers
     CHUNK_SIZE = int(50)
