@@ -74,23 +74,19 @@ class Wallet(object):
         elif Params.SCRIPT_TYPE == 1:
             if os.path.exists(path):
                 with open(path, 'rb') as f:
-                    # get the list of private keys
-                    signing_key = []
-                    for i in range(Params.P2SH_PUBLIC_KEY):
-                        signing_key.append(ecdsa.SigningKey.from_string(
-                            f.read(), curve=ecdsa.SECP256k1))
+                    # get the list of private key
+                    signing_key = [ecdsa.SigningKey.from_string(
+                            f.read(), curve=ecdsa.SECP256k1) for i in range(Params.P2SH_PUBLIC_KEY)]
             else:
                 logger.info(f"[wallet] generating new wallet: '{path}'")
-                signing_key = []
-                for i in range(Params.P2SH_PUBLIC_KEY):
-                    signing_key.append(ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1))
+                signing_key = [ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
+                               for i in range(Params.P2SH_PUBLIC_KEY)]
                 with open(path, 'wb') as f:
                     for i in range(Params.P2SH_PUBLIC_KEY):
                         f.write(signing_key[i].to_string())
 
-            verifying_key = []
-            for i in range(Params.P2SH_PUBLIC_KEY):
-                verifying_key.append(signing_key[i].get_verifying_key())
+            verifying_key = [signing_key[i].get_verifying_key().to_string()
+                             for i in range(Params.P2SH_PUBLIC_KEY)]
 
             my_address = Wallet.pubkey_to_address(verifying_key)
             logger.info(f"[wallet] your address is {my_address}")

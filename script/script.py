@@ -357,7 +357,7 @@ class Tokenizer(object):
                 pushdata_length = opcode
                 if opcodes.OP_PUSHDATA1 <= opcode <= opcodes.OP_PUSHDATA4:
                     op_length = [1, 2, 4][opcode - opcodes.OP_PUSHDATA1]
-                    pushdata_length = int.from_bytes(script[:op_length], 'little')
+                    pushdata_length = int.from_bytes(script[:op_length], 'big')
                     opcode_bytes += script[:op_length]
                     script = script[op_length:]
 

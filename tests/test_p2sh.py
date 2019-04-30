@@ -1,9 +1,10 @@
 import binascii
 import hashlib
 
-from base58 import b58encode_check
+from base58 import b58encode_check, b58decode_check
 import ecdsa
 
+from script import script
 from script import scriptBuild
 from script.script import Tokenizer
 
@@ -73,9 +74,37 @@ def check_redeem_script():
     print("print P2SH address:  ", end="")
     print(pubkey_to_address(verifying_key))
 
+def check_redeem_script_check():
+    print("---------TEST----------")
+
+    # the signature is no related to the redeem script, just verify the HASH process
+    sign_a = b'$\xf3"\x02\xb3\x0b\xbf\xd5_[O\n\xac\xa41<<w[\x18\x1d\xb8:\xfc\xf2\x881\xde\xbe\x9b\xb3@\xe15%\xf0zx\xf4\xa5\xf3\xee@\x0el\xa7\x16w\x90\xbf\xf0r\xf9\x02i\xde\xbc\xe8\xf3\x14ap\xa2k'
+    sign_b = b'\x16T4e\xd9\xa45\xa9x\xf2\xb6\xf5\xdeDq\x15N\xa6\xdf\x83\xfbW\xb8\xe2;\r\\H$ \xba\xab\xe3>\xa1C&\x92\x8fj\x1d\x12c\x92}\xab\xd4y\xf4\xd4\xe9\x11\\\x16\x1cZ\x0f\t\xc1\xe9\xedE\xf5\xab'
+
+    sig_list = [sign_a, sign_b]
+
+    # print(len_a)
+
+    redeem_script = b'5240a3f99c8ed4ee64610fd1f78cc9a9037184c6b2966c8517252ab51da7e31334aff9b0ea0a0808b7358054fe28d595d65b7cf1452b9b7388891e77864f16a6512f408c6b1aa13ce4cf9f6a569ae1298cdd9b61f229ee80873c5c851158f3a21b833578203d1ed2b94718e3ce77c85f28875a7c8ac62125c2334faa4bd069edbc7fed40f58d19c1a09330385a7602e5bd3110f557c9e60cfe152e8dec3ed7465b9f1cf2905d5812eb73671c499b76b0b355bbdad3ddc6ddb5a0713fc329e429ead1a14753ae'
+
+    signature = scriptBuild.get_signature_script_without_hashtype(sig_list, redeem_script)
+
+    decode_redeem_script = binascii.hexlify(b58decode_check('3F6RnxFya9dtCTnkbwdPobo4eGMppRuNcR')[1:])
+
+    p2sh_script = scriptBuild.get_p2sh_script(decode_redeem_script)
+
+    valid = script.Script(b'', b'').process(signature, p2sh_script, b'', 0)
+
+    print("Get the verify result: ", end="")
+    print(valid)
+
+    print("---------DONE----------")
+
 
 if __name__ == '__main__':
 
     # just 2-3 method
-    check_redeem_script()
+    # check_redeem_script()
+
+    check_redeem_script_check()
 
