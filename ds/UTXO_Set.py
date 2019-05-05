@@ -112,7 +112,7 @@ class UTXO_Set(BaseUTXO_Set):
                 if valid:
                     logger.info(f'[script] Script check succeed!')
                 else:
-                    logger.exception(f'[script] Script check failed in Transaction part!')
+                    logger.error(f'[script] Script check failed in Transaction part!')
                     raise TxnValidationError(f'Script check failed')
             except TxUnlockError:
                 raise TxnValidationError(f'{txin} is not a valid spend of {utxo}')

@@ -6,6 +6,7 @@ from base58 import b58decode_check
 from . import opcodes
 
 from script import script
+
 from params.Params import Params
 
 from base58 import b58encode_check
@@ -18,10 +19,14 @@ def sizeof(n):
 
 
 def get_pk_script(to_addr):
-    # decode the address to get the public hash
+    # decode the address to get the public hash, then add it to the script
+    head = b58decode_check(to_addr)[0]
     public_key_hash_de = b58decode_check(to_addr)[1:]
     pk_hash = binascii.hexlify(public_key_hash_de)
-    return make_pk_script(pk_hash)
+    if head == 0:
+        return make_pk_script(pk_hash)
+    elif head == 5:
+        return get_p2sh_script(pk_hash)
 
 
 def make_pk_script(pk_hash) -> str:
@@ -52,7 +57,7 @@ def get_redeem_script(pubkeys):
     return redeem_script
 
 
-def get_p2sh_script(p2sh_hash):
+def get_p2sh_script(p2sh_hash) -> bytes:
     pubkey_script = Script('OP_HASH160').parse()
     pubkey_script += len(p2sh_hash).to_bytes(1, 'big')
     pubkey_script += p2sh_hash
@@ -67,10 +72,12 @@ def get_address_from_pk_script(to_addr):
 
     Tokens = script.Tokenizer(to_addr)
     # print(Tokens)
-    pre_hash = Tokens.get_value(2)
-    # print(pre_hash)
-    hash = binascii.unhexlify(pre_hash)
-    address = b58encode_check(b'\x00' + hash)
+    if Params.SCRIPT_TYPE == 0:
+        address = b58encode_check(b'\x00' + binascii.unhexlify(Tokens.get_value(2)))
+    elif Params.SCRIPT_TYPE == 1:
+        address = b58encode_check(b'\x05' + binascii.unhexlify(Tokens.get_value(1)))
+    else:
+        raise Exception('Can not get the right address from the script')
     address = address if isinstance(address, str) else str(address, encoding="utf-8")
     return address
 
@@ -87,14 +94,14 @@ def get_signature_script_without_hashtype(signature, invalue) -> bytes:
     def add_flag(num: int) -> bytes:
         return num.to_bytes(sizeof(num), 'big')
 
-    signature_script = b''
     if Params.SCRIPT_TYPE == 0:
-        signature_script += add_len(signature)
+        signature_script = add_len(signature)
         signature_script += add_len(invalue)
 
     elif Params.SCRIPT_TYPE == 1:
         if not isinstance(signature, list):
             raise Exception('The input signature is not list for verifying process')
+        signature_script = Script('OP_FALSE').parse()
         for sig in signature:
             signature_script += add_len(sig)
         # put in the redeem script
@@ -109,6 +116,8 @@ def get_signature_script_without_hashtype(signature, invalue) -> bytes:
             signature_script += add_flag(0x4e) + add_len(invalue)  # OP_PUSHDATA4
         else:
             raise Exception('Can not add OP_PUSHDATA to the signature script.')
+    else:
+        raise Exception('Can not get signature here.')
 
     return signature_script
 

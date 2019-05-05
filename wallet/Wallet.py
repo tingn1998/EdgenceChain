@@ -50,7 +50,6 @@ class Wallet(object):
         address = address if isinstance(address, str) else str(address, encoding="utf-8")
         return address
 
-
     @classmethod
     @lru_cache()
     def init_wallet(cls, path='wallet.dat'):
@@ -74,16 +73,17 @@ class Wallet(object):
         elif Params.SCRIPT_TYPE == 1:
             if os.path.exists(path):
                 with open(path, 'rb') as f:
-                    # get the list of private key
+                    length = int.from_bytes(f.read(2), 'big')
                     signing_key = [ecdsa.SigningKey.from_string(
-                            f.read(), curve=ecdsa.SECP256k1) for i in range(Params.P2SH_PUBLIC_KEY)]
+                        f.read(length), curve=ecdsa.SECP256k1) for i in range(Params.P2SH_PUBLIC_KEY)]
             else:
                 logger.info(f"[wallet] generating new wallet: '{path}'")
                 signing_key = [ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
                                for i in range(Params.P2SH_PUBLIC_KEY)]
                 with open(path, 'wb') as f:
-                    for i in range(Params.P2SH_PUBLIC_KEY):
-                        f.write(signing_key[i].to_string())
+                    f.write(len(signing_key[0].to_string()).to_bytes(2, 'big'))
+                    for k in signing_key:
+                        f.write(k.to_string())
 
             verifying_key = [signing_key[i].get_verifying_key().to_string()
                              for i in range(Params.P2SH_PUBLIC_KEY)]
@@ -92,4 +92,3 @@ class Wallet(object):
             logger.info(f"[wallet] your address is {my_address}")
 
             return cls(signing_key, verifying_key, my_address)
-

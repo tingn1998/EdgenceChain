@@ -11,6 +11,9 @@ from script.script import Tokenizer
 from utils.Utils import Utils
 from params.Params import Params
 
+from ds.OutPoint import OutPoint
+from ds.TxOut import TxOut
+
 
 def pubkey_to_address(pubkey) -> str:
     if 'ripemd160' not in hashlib.algorithms_available:
@@ -74,6 +77,21 @@ def check_redeem_script():
     print("print P2SH address:  ", end="")
     print(pubkey_to_address(verifying_key))
 
+
+def test_p2sh_script(to_address):
+
+    decode_redeem_script = binascii.hexlify(b58decode_check(to_address)[1:])
+
+    p2sh_script = scriptBuild.get_p2sh_script(decode_redeem_script)
+
+    print("get the p2sh output script: ", end="")
+    print(p2sh_script)
+    # print(binascii.hexlify(p2sh_script))
+
+    print("Tokenizer the script: ", end="")
+    print(script.Tokenizer(p2sh_script))
+
+
 def check_redeem_script_check():
     print("---------TEST----------")
 
@@ -99,6 +117,52 @@ def check_redeem_script_check():
     print(valid)
 
     print("---------DONE----------")
+
+
+def check_all_redeem_script():
+
+    print("-----------TEST-----------")
+
+    # get the redeem script
+    signing_key = [ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
+                   for i in range(Params.P2SH_PUBLIC_KEY)]
+
+    verifying_key = [signing_key[i].get_verifying_key().to_string()
+                     for i in range(Params.P2SH_PUBLIC_KEY)]
+
+    redeem_script = scriptBuild.get_redeem_script(verifying_key)
+
+    to_address = pubkey_to_address(verifying_key)
+    print(to_address)
+
+    print("----------GET THE ADDR AND REDEEM SCRIPT-----------")
+
+    pk_script = scriptBuild.get_pk_script(to_address)
+
+    # print(script.Tokenizer(pk_script))  # get the tokens of pk_script
+
+    outpoint = OutPoint(txid='c47852b74825cc2bbd39faafb588b50243de9bb453dd9f48167d12bb360848cc', txout_idx=0)
+    txouts = [TxOut(value=110, pk_script=scriptBuild.get_pk_script('1NY36FKZqM97oEobfCewhUpHsbzAUSifzo')),
+              TxOut(value=4999999890,
+                    pk_script=scriptBuild.get_pk_script('1BP9KYivYyhPEbg2WDFTf83i8wnyFYuRGH'))]
+    sequence = 0
+
+    sign_a = signing_key[0].sign(build_spend_message(outpoint, verifying_key[0], sequence, txouts))
+    sign_b = signing_key[1].sign(build_spend_message(outpoint, verifying_key[1], sequence, txouts))
+
+    aa = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
+    bb = aa.get_verifying_key().to_string()
+    sign_c = aa.sign(build_spend_message(outpoint, bb, sequence, txouts))
+
+    sign = [sign_a, sign_c]
+
+    signature = scriptBuild.get_signature_script_without_hashtype(sign, redeem_script)
+
+    valid = script.Script(b'', b'').process(signature, pk_script, b'', 0)
+
+    print(valid)
+
+    print("----------DONE-----------")
 
 
 if __name__ == '__main__':

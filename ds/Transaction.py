@@ -42,7 +42,8 @@ class Transaction(NamedTuple):
                 # Push current block height into unlock_sig so that this
                 # transaction's ID is unique relative to other coinbase txns.
                 # first param is unlock_sig, another is unlock_pk
-                signature_script=scriptBuild.get_signature_script_without_hashtype(str(height).encode(), b''),
+                signature_script=scriptBuild.get_signature_script_without_hashtype(str(height).encode(), b'')
+                if Params.SCRIPT_TYPE == 0 else scriptBuild.get_signature_script_without_hashtype([str(height).encode()], b''),
                 sequence=0)],
             txouts=[TxOut(
                 value=value,
