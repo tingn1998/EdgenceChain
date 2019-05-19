@@ -72,9 +72,9 @@ def get_address_from_pk_script(to_addr):
 
     Tokens = script.Tokenizer(to_addr)
     # print(Tokens)
-    if len(Tokens) == 5:
+    if len(Tokens) == 5:  # the input script of utxo is P2PKH way
         address = b58encode_check(b'\x00' + binascii.unhexlify(Tokens.get_value(2)))
-    elif len(Tokens) == 3:
+    elif len(Tokens) == 3:   # the input script of utxo is P2SH way
         address = b58encode_check(b'\x05' + binascii.unhexlify(Tokens.get_value(1)))
     else:
         raise Exception('Can not get the right address from the script')

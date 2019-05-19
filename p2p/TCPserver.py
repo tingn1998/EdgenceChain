@@ -495,7 +495,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
             elif chain_idx is None:
                 logger.info(f'[p2p] already seen block {block.id}, and do nothing')
             elif chain_idx == -1:
-                #case of orphan block
+                # case of orphan block
                 message = Message(Actions.TopBlocksSyncReq, 50, Params.PORT_CURRENT)
                 if peer == Peer('127.0.0.1', Params.PORT_CURRENT):
                     getpeers = self.peerManager.getPeers(2)

@@ -53,7 +53,7 @@ class Params:
     ACTIVE_CHAIN_IDX = int(0)
 
     # Script type, we set 0 for P2PKH and 1 for P2SH
-    SCRIPT_TYPE = 1
+    SCRIPT_TYPE = 0
     P2SH_VERIFY_KEY = 2
     P2SH_PUBLIC_KEY = 3
 
@@ -65,7 +65,7 @@ class Params:
 
     PUBLIC_IP = '127.0.0.1'
     PORT_CURRENT = int(9999)
-    PEERS_FILE =  'seeds.node'
+    PEERS_FILE = 'seeds.node'
     CHAIN_FILE = 'chain.dat'
     WALLET_FILE = 'mywallet.dat'
     PEERS: Iterable[Tuple] = list([

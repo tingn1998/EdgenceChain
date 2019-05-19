@@ -530,7 +530,7 @@ class Script(object):
             tokens.append(pk_script)
             # get the redeem script for verify process
             tokens.append(redeem_script)
-        elif pk_len == 5:
+        elif pk_len == 6:  # get the P2PKH script in this part(EQUAL and VERIFY was two opcode).
             # counting the length of tokens which contains two kind of scripts
             last_codeseparator = signature_length
             # (previous_output.pk_script)
