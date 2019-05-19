@@ -503,7 +503,8 @@ class Script(object):
             input = self._transaction.txins[i]
             # print(self._unspend.get(input.to_spend).pk_script)
             pk_script = self._unspend.get(input.to_spend).pk_script
-            if not self.verify_input(i, pk_script):  # get the previous output's pk_script
+            if not self.verify_input(i, pk_script):
+                # get the previous output's pk_script
                 # print "INVALID:", self._transaction.hash.encode('hex'), i # check for this
                 logger.error(f'[script] script verification wrong in Script part!')
                 return False
@@ -514,31 +515,28 @@ class Script(object):
     @staticmethod
     def process(signature_script, pk_script, transaction, input_index):
 
-        if Params.SCRIPT_TYPE == 0:
-            # tokenize (placing the last code separator after the signature script)
-            tokens = Tokenizer(signature_script, expand_verify=True)
-            signature_length = len(tokens)
-            # counting the length of tokens which contains two kind of scripts
-            last_codeseparator = signature_length
-            # (previous_output.pk_script）
-            tokens.append(pk_script)
+        # tokenize (placing the last code separator after the signature script)
+        tokens = Tokenizer(signature_script, expand_verify=True)
+        signature_length = len(tokens)
 
-        if Params.SCRIPT_TYPE == 1:
-            # tokenize (placing the last code separator after the signature script)
-            tokens = Tokenizer(signature_script, expand_verify=True)
-            signature_length = len(tokens)
-            # print(len(tokens))
-            # print(tokens.get_value(3))
-            # print(tokens.get_value(-1))
+        pk_len = len(Tokenizer(pk_script, expand_verify=True))
+        # if the pk_script length is 3 we use P2SH way
+        if pk_len == 3:
+            # print("the token length is %d and the token value at %d is: %s" % (len(tokens), 3, tokens.get_value(3)))
             redeem_script = tokens.get_value(-1)
             # counting the length of tokens which contains two kind of scripts
             last_codeseparator = signature_length
-            # (previous_output.pk_script）
+            # (previous_output.pk_script)
             tokens.append(pk_script)
             # get the redeem script for verify process
-            # tokens.append(Tokenizer(signature_script, expand_verify=True).get_value(3))
             tokens.append(redeem_script)
-
+        elif pk_len == 5:
+            # counting the length of tokens which contains two kind of scripts
+            last_codeseparator = signature_length
+            # (previous_output.pk_script)
+            tokens.append(pk_script)
+        else:
+            logger.exception(f'[script] Get Exception in the Tokenizer part')
 
         # check for VERY forbidden opcodes (see "reserved Words" on the wiki)
         for token in tokens:

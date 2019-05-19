@@ -72,9 +72,9 @@ def get_address_from_pk_script(to_addr):
 
     Tokens = script.Tokenizer(to_addr)
     # print(Tokens)
-    if Params.SCRIPT_TYPE == 0:
+    if len(Tokens) == 5:
         address = b58encode_check(b'\x00' + binascii.unhexlify(Tokens.get_value(2)))
-    elif Params.SCRIPT_TYPE == 1:
+    elif len(Tokens) == 3:
         address = b58encode_check(b'\x05' + binascii.unhexlify(Tokens.get_value(1)))
     else:
         raise Exception('Can not get the right address from the script')

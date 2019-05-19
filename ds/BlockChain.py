@@ -149,6 +149,7 @@ class BlockChain(BaseBlockChain):
                     for txin in tx.txins:
                         utxo_set.rm_from_utxo(*txin.to_spend)
                 for i, txout in enumerate(tx.txouts):
+                    # print(txout)
                     utxo_set.add_to_utxo(txout, tx, i, tx.is_coinbase, self.height)
 
 
