@@ -2,6 +2,7 @@ class BaseUTXO_Set(object):
 
     def __init__(self):
         self.utxoSet = {}
+
     def get(self):
         pass
 
@@ -12,4 +13,7 @@ class BaseUTXO_Set(object):
         pass
 
     def find_utxo_in_list(cls, txin, txns):
-       pass
+        pass
+
+    def validate_txn(self, txn, mempool, as_coinbase, siblings_in_block, allow_utxo_from_mempool):
+        pass

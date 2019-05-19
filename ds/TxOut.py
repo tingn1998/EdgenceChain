@@ -8,5 +8,5 @@ class TxOut(NamedTuple):
     # The number of LET this awards.
     value: int
 
-    # The public key of the owner of this Txn.
-    to_address: str
+    # define pk_script(scriptPublicKey) here
+    pk_script: bytes

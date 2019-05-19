@@ -38,6 +38,9 @@ from p2p.Message import Message
 from p2p.Message import Actions
 from persistence import Persistence
 
+from script import scriptBuild
+
+
 logging.basicConfig(
     level=getattr(logging, os.environ.get('TC_LOG_LEVEL', 'INFO')),
     format='[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s')
@@ -408,9 +411,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
         self.request.sendall(Utils.encode_socket_data(message))
 
     def handleUTXO4Addr(self, addr: str, peer: Peer):
-        #with self.chain_lock:
+        # with self.chain_lock:
         logger.info(f'handle UTXO4Addr request from {peer}')
-        utxos4addr = [u for u in self.utxo_set.utxoSet.values() if u.to_address == addr]
+        utxos4addr = [u for u in self.utxo_set.utxoSet.values() if
+                      scriptBuild.get_address_from_pk_script(u.to_address) == addr]
 
         message = Message(Actions.UTXO4AddrRev, utxos4addr, Params.PORT_CURRENT)
 
@@ -418,11 +422,13 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
     def handleBalance4Addr(self, addr: str, peer: Peer):
 
-        #with self.chain_lock:
+        # with self.chain_lock:
         logger.info(f'handle Balance4Addr request from {peer}')
-        utxos4addr = [u for u in self.utxo_set.utxoSet.values() if u.to_address == addr]
-        val = sum(utxo.value for utxo in utxos4addr)
+        utxos4addr = [u for u in self.utxo_set.utxoSet.values() if
+                      scriptBuild.get_address_from_pk_script(u.to_address) == addr]
 
+        val = sum(utxo.value for utxo in utxos4addr)
+        # logger.info(f'return Balance4Addr request and get value {self.utxo_set.utxoSet.values()}')
 
         message = Message(Actions.Balance4AddrRev, val, Params.PORT_CURRENT)
         self.request.sendall(Utils.encode_socket_data(message))
@@ -515,7 +521,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
             elif chain_idx is None:
                 logger.info(f'[p2p] already seen block {block.id}, and do nothing')
             elif chain_idx == -1:
-                #case of orphan block
+                # case of orphan block
                 message = Message(Actions.TopBlocksSyncReq, 50, Params.PORT_CURRENT)
                 if peer == Peer('127.0.0.1', Params.PORT_CURRENT):
                     getpeers = self.peerManager.getPeers(2)

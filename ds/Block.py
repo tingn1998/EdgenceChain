@@ -1,3 +1,4 @@
+
 import binascii
 import time
 import json
@@ -32,6 +33,7 @@ from params.Params import Params
 import _thread
 from ds.BaseBlockChain import BaseBlockChain
 
+from script import scriptBuild
 
 import ecdsa
 from base58 import b58encode_check
@@ -78,15 +80,17 @@ class Block(NamedTuple):
                     '2c204c6561684c69752c207069616f6c69616e676b622c2053616c7661746f7265303632362c2053696c7669614c69313'
                     '232352c204a69617169204c69752c2078696179756e696c0a',
             prev_block_hash=None,
-            merkle_hash='8cfb8d2d2ed9343461b0eefb73c775b9366a32e05e81b0e8946620e2f1935507',
+            merkle_hash='b7b51d3818055321711cf3049b7067afb7d5cbddacc6c106ca92906974316b14',
             timestamp=1554460209,
             bits=Params.INITIAL_DIFFICULTY_BITS,
-            nonce=17040052,
+            nonce=5808524,
             txns=[Transaction(
                 txins=[TxIn(
-                    to_spend=None, unlock_sig=b'0', unlock_pk=None, sequence=0)],
+                    to_spend=None, signature_script=b'0', sequence=0)],
                 txouts=[TxOut(
-                    value=5000000000, to_address='0000000000000000000000000000000000')], locktime=None)]
+                    value=5000000000, pk_script=scriptBuild.get_pk_script('1NY36FKZqM97oEobfCewhUpHsbzAUSifzo')
+                    )],
+                locktime=None)]
         )
 
 
@@ -264,7 +268,7 @@ class Block(NamedTuple):
 
         for txn in self.txns[1:]:
             try:
-                txn.validate_txn(utxo_set, mempool, active_chain, siblings_in_block=self.txns[1:], allow_utxo_from_mempool=False)
+                utxo_set.validate_txn(utxo_set, mempool, active_chain, siblings_in_block=self.txns[1:], allow_utxo_from_mempool=False)
             except TxnValidationError:
                 msg = f"[ds] {txn} failed to validate"
                 logger.exception(msg)

@@ -37,5 +37,4 @@ class PoW(object):
         logger.info(
             f'[consensus] mining block found at nonce={nonce} using {round(duration, 4)} s at rate {khs} KH/s: {block.id}')
 
-
         return block

@@ -48,7 +48,6 @@ class MerkleNode(NamedTuple):
 
             return find_root([MerkleNode(Utils.sha256d(l)) for l in leaves])
 
-
         return get_merkle_root(*[t.id for t in txns])
 
 

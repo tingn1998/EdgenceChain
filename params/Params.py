@@ -52,7 +52,10 @@ class Params:
     HALVE_SUBSIDY_AFTER_BLOCKS_NUM = int(210_000)
     ACTIVE_CHAIN_IDX = int(0)
 
-    TRIES_MAXIMUM = 1
+    # Script type, we set 0 for P2PKH and 1 for P2SH
+    SCRIPT_TYPE = 0
+    P2SH_VERIFY_KEY = 2
+    P2SH_PUBLIC_KEY = 3
 
     # list of peers
     CHUNK_SIZE = int(50)
@@ -60,17 +63,12 @@ class Params:
     MAXIMUM_ALLOWABLE_HEIGHT_DIFF = 15
     MAXIMUM_FAILURE_PEER = 50
 
-    PUBLIC_IP = ''
-    PORT_CURRENT = int(9996)
-    PEERS_FILE =  'seeds.node'
+    PUBLIC_IP = '127.0.0.1'
+    PORT_CURRENT = int(9999)
+    PEERS_FILE = 'seeds.node'
     CHAIN_FILE = 'chain.dat'
     WALLET_FILE = 'mywallet.dat'
-    PEERS: Iterable[Tuple] = list([('47.102.41.81', 9996),
-                     ('39.97.166.176', 9996),
-                     ('47.92.85.186', 10000),
-                    ('47.111.168.213', 9996),
-                     ('47.88.63.126', 9996),
-                     ('161.117.84.146', 9996)
+    PEERS: Iterable[Tuple] = list([
                      ])
 
 
