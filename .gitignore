@@ -1,4 +1,5 @@
 .idea
+venv/
 seeds.node
 chain.dat
 mywallet.dat
@@ -10,3 +11,4 @@ params/__pycache__
 persistence__pycache__
 utils/__pycache__
 wallet/__pycache__
+
