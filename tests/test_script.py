@@ -250,6 +250,9 @@ def test_script_check_sig(signature, public_key, transaction, input_index):
 if __name__ == '__main__':
 
     my_address = '1QAJPVXf6sLMeTRoqCuyjmZYNShFrwFFQ4'
+
+    pk_script = b'v\xa9(ec394803acaf0ad750aa37b8ce147ff018d83a0d\x88\xac'
+    print(scriptBuild.get_address_from_pk_script(pk_script))
     #
     # public_key_hash_de = b58decode_check(my_address)[1:]
     #

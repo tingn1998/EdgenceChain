@@ -164,7 +164,6 @@ class Block(NamedTuple):
             return prev_block.bits
 
 
-
     def calculate_fees(self, utxo_set: BaseUTXO_Set) -> int:
 
         fee = 0
@@ -225,8 +224,6 @@ class Block(NamedTuple):
         if MerkleNode.get_merkle_root_of_txns(self.txns).val != self.merkle_hash:
             raise BlockValidationError('Merkle hash invalid')
 
-
-
         if not self.prev_block_hash and active_chain.height == 1 and self.id == active_chain.chain[0].id:
             # this block is the genesis block
             if self.timestamp >= int(time.time()):
@@ -236,7 +233,6 @@ class Block(NamedTuple):
 
             return Params.ACTIVE_CHAIN_IDX
         else:
-
             prev_block, prev_block_height, prev_block_chain_idx = Block.locate_block(
                 self.prev_block_hash, active_chain, side_branches)
 
@@ -246,7 +242,6 @@ class Block(NamedTuple):
 
             if self.timestamp <= _get_median_time_past(prev_block, prev_block_height, prev_block_chain_idx):
                 raise BlockValidationError('timestamp too old')
-
 
             # No more validation for a block getting attached to a branch.
             if prev_block_chain_idx != Params.ACTIVE_CHAIN_IDX:
@@ -268,12 +263,12 @@ class Block(NamedTuple):
 
         for txn in self.txns[1:]:
             try:
-                utxo_set.validate_txn(utxo_set, mempool, active_chain, siblings_in_block=self.txns[1:], allow_utxo_from_mempool=False)
+                # utxo_set.validate_txn(utxo_set, mempool, active_chain, siblings_in_block=self.txns[1:], allow_utxo_from_mempool=False)
+                utxo_set.validate_txn(txn, mempool)
             except TxnValidationError:
                 msg = f"[ds] {txn} failed to validate"
                 logger.exception(msg)
                 raise BlockValidationError(msg)
-
         if active_chain.height == 1:
             # the current block is the second block of active chain to be validated
             logger.info(f'[ds] begin to validate the genesis block')

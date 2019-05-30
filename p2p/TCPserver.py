@@ -139,8 +139,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
         elif action == Actions.Balance4Addr:
             self.handleBalance4Addr(message.data, peer)
         elif action == Actions.TxRev:
-            self.request.shutdown(socket.SHUT_RDWR)
-            self.request.close()
+            # self.request.shutdown(socket.SHUT_RDWR)
+            # self.request.close()
             self.handleTxRev(message.data, peer)
         elif action == Actions.BlockRev:
             self.request.shutdown(socket.SHUT_RDWR)
@@ -413,6 +413,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
     def handleUTXO4Addr(self, addr: str, peer: Peer):
         # with self.chain_lock:
         logger.info(f'handle UTXO4Addr request from {peer}')
+        # for u in self.utxo_set.utxoSet.values():
+        #     print(scriptBuild.get_address_from_pk_script(u.to_address))
+
         utxos4addr = [u for u in self.utxo_set.utxoSet.values() if
                       scriptBuild.get_address_from_pk_script(u.to_address) == addr]
 

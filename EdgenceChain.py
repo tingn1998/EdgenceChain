@@ -110,10 +110,16 @@ class EdgenceChain(object):
 
             if not block.txns[1:]:
                 block = self.mempool.select_from_mempool(block, self.utxo_set)
+                # print("EdgenceChain 113: build block with txn:", end="")
+                # print(block)
                 if len(block.txns[1:]) > 0:
                     logger.info(f'{len(block.txns[1:])} transactions selected from mempool to construct this block')
+                    # print("EdgenceChain 117: build txn:")
+                    # print(block)
 
             fees = block.calculate_fees(self.utxo_set)
+            # print("fee is: ", end="")
+            # print(fees)
             my_address = self.wallet()[2]
             coinbase_txn = Transaction.create_coinbase(
                 my_address,
@@ -129,7 +135,8 @@ class EdgenceChain(object):
             raise ValueError('txns specified create a block too large')
 
         block = PoW.mine(block, self.mine_interrupt)
-
+        # print("EdgenceChain 138: after mine: ")
+        # print(block)
         return block
 
 
@@ -216,23 +223,22 @@ class EdgenceChain(object):
                     block = self.assemble_and_solve_block()
 
                     if block:
-
                         threading.Thread(target=broadcast_new_mined_block, args = (copy.deepcopy(block),)).start()
                         #ret_outside_chain = False
                         with self.chain_lock:
-                            #chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
-                            #logger.info(f'####### into chain_lock: {chain_use_id} of mine_forever')
-
+                            # chain_use_id = [str(number).split('.')[0] + '.' + str(number).split('.')[1][:5] for number in [random.random()]][0]
+                            # logger.info(f'####### into chain_lock: {chain_use_id} of mine_forever')
                             chain_idx  = TCPHandler.check_block_place(block, self.active_chain, self.utxo_set, \
                                                                       self.mempool, self.side_branches)
-
                             ret_outside_lock = False
                             if chain_idx is not None and chain_idx >= 0:
                                 ret_outside_lock = TCPHandler.do_connect_block_and_after(block, chain_idx, self.active_chain, \
                                                                       self.side_branches, self.mempool, \
                                                                self.utxo_set, self.mine_interrupt)
-                            #logger.info(f'####### out of chain_lock: {chain_use_id} of mine_forever')
+                            # logger.info(f'####### out of chain_lock: {chain_use_id} of mine_forever')
+                        # logger.info(f'ret_outside_lock: {ret_outside_lock}')
                         if ret_outside_lock is True:
+                            # logger.info(f'len(self.active_chain.chain): {len(self.active_chain.chain)}')
                             if len(self.active_chain.chain) % Params.SAVE_PER_SIZE == 0 or len(self.active_chain.chain) <= 5:
                                 Persistence.save_to_disk(self.active_chain)
 

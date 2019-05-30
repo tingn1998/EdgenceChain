@@ -165,7 +165,7 @@ def _hash_op(stack, func):
 
 # ————————————————————process the signature—————————————————————————
 
-def check_signature_without_hashtype(signature, public_key, transaction, input_index) -> bool:
+def check_signature_without_hashtype(signature, public_key, transaction, input_index, pk_len) -> bool:
     """
     this Function check the message with no hash_type and realize just the method SIGHASH_ALL
     """
@@ -178,7 +178,7 @@ def check_signature_without_hashtype(signature, public_key, transaction, input_i
 
         return spend_msg
 
-    if Params.SCRIPT_TYPE == 0:
+    if pk_len == 6:
         txin = transaction.txins[input_index]
 
         # get the key for verify
@@ -193,8 +193,7 @@ def check_signature_without_hashtype(signature, public_key, transaction, input_i
             logger.exception(f'[script] Key verification failed')
             raise TxUnlockError("Signature doesn't match")
 
-    elif Params.SCRIPT_TYPE == 1:
-
+    elif pk_len == 3:
         txin = transaction.txins[input_index]
 
         # get the key for verify
@@ -827,7 +826,7 @@ class Script(object):
                 # when we use the method check_signature() we add param 'hash_type' and 'subscript'
                 # valid = check_signature(signature, public_key, hash_type, subscript, transaction, input_index)
 
-                valid = check_signature_without_hashtype(signature, public_key, transaction, input_index)
+                valid = check_signature_without_hashtype(signature, public_key, transaction, input_index, pk_len)
 
                 if valid:
                     stack.append(One)  # the verify process is successful
@@ -883,7 +882,7 @@ class Script(object):
 
                     # do any remaining public keys work?
                     for public_key in public_keys:
-                        if check_signature_without_hashtype(signature, public_key, transaction, input_index):
+                        if check_signature_without_hashtype(signature, public_key, transaction, input_index, pk_len):
                             # if check_signature(signature, public_key, hash_type, subscript, transaction, input_index):
 
                             # record which public key and remove from future canidate

@@ -135,7 +135,6 @@ class BlockChain(BaseBlockChain):
 
             return reorged
 
-
         if self.idx == Params.ACTIVE_CHAIN_IDX:
             logger.info(f'[ds] ##### connecting block at height #{len(self.chain)+1} chain with index #{self.idx}: {block.id} ')
         else:
