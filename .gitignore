@@ -1,5 +1,5 @@
 .idea
-venv
+Edgescript
 seeds.node
 chain.dat
 mywallet.dat
