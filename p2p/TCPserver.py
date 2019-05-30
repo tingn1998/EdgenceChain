@@ -139,8 +139,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
         elif action == Actions.Balance4Addr:
             self.handleBalance4Addr(message.data, peer)
         elif action == Actions.TxRev:
-            # self.request.shutdown(socket.SHUT_RDWR)
-            # self.request.close()
+            self.request.shutdown(socket.SHUT_RDWR)
+            self.request.close()
             self.handleTxRev(message.data, peer)
         elif action == Actions.BlockRev:
             self.request.shutdown(socket.SHUT_RDWR)
