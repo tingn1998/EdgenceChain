@@ -90,7 +90,7 @@ class Block(NamedTuple):
             merkle_hash="a578b7a3bdc2d1385bce32a445a8ec4ffb9ab78b76afc30f53787b3189be289c",
             timestamp=1554460209,
             bits=Params.INITIAL_DIFFICULTY_BITS,
-            nonce=48747115,
+            nonce=41912381,
             txns=[
                 Transaction(
                     txins=[TxIn(to_spend=None, signature_script=b"0", sequence=0)],
@@ -102,11 +102,11 @@ class Block(NamedTuple):
                             ),
                         )
                     ],
+                    locktime=None,
                     serviceId=None,
                     postId=None,
                     actionId=None,
                     data=None,
-                    locktime=None,
                 )
             ],
         )

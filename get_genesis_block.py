@@ -37,7 +37,7 @@ genesis_block = Block(
             "2c204c6561684c69752c207069616f6c69616e676b622c2053616c7661746f7265303632362c2053696c7669614c69313"
             "232352c204a69617169204c69752c2078696179756e696c0a",
     prev_block_hash=None,
-    merkle_hash=merkle_hash,
+    merkle_hash=merkle_hash.val,
     timestamp=1554460209,
     bits=Params.INITIAL_DIFFICULTY_BITS,
     nonce=None,
@@ -61,8 +61,9 @@ def mine(block: Block) -> Block:
     khs = (block.nonce // duration) // 1_000
     print(f"genesis_block found at nonce={nonce} using {round(duration, 4)}s at rate {khs}KH/s")
     print(f"blockid={block.id}")
+    return block
 
-mine(genesis_block)
+genesis_block = mine(genesis_block)
 
 # Sample output:
 # $ python3 getgenesisblock.py

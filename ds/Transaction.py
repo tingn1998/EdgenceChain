@@ -72,6 +72,11 @@ class Transaction(NamedTuple):
             txouts=[
                 TxOut(value=value, pk_script=scriptBuild.get_pk_script(pay_to_addr))
             ],
+            serviceId=None,
+            actionId=None,
+            postId=None,
+            data=None,
+            locktime=None
         )
 
     @property
