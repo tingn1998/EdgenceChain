@@ -353,5 +353,3 @@ class EdgenceChain(object):
         
         [w.join() for w in workers]
 
-
-
