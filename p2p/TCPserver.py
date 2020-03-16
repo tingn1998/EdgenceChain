@@ -128,7 +128,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         try:
             # logger.info(f'type of self.request is {type(self.request)} before read')
 
-            logger.info(f"[p2p] receive message from {self.request.getpeername()[0]}")
+            logger.info(f"[p2p] start handling message from {self.request.getpeername()[0]}")
 
             # If message is invalid from other peers,
             # like sending a meanningless info which will be translated by Utils.read_all_from_socket()
