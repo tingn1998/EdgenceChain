@@ -127,13 +127,22 @@ class TCPHandler(socketserver.BaseRequestHandler):
         )
         try:
             # logger.info(f'type of self.request is {type(self.request)} before read')
-            logger.info(f"[test log] receive message from {self.request.getpeername()[0]}")
+
+            logger.info(f"[p2p] receive message from {self.request.getpeername()[0]}")
+
+            # If message is invalid from other peers,
+            # like sending a meanningless info which will be translated by Utils.read_all_from_socket()
+            # using our protocol into a random message length.
+            # If message is invalid, Utils.read_all_from_socket() will return None.
             message = Utils.read_all_from_socket(self.request, self.gs)
+
+            # If message is None, shutdown this socket connection.
             if message is None:
-                logger.info(f"[test log] message is None, close socket connection")
+                logger.info(f"[p2p] message is None, close socket connection")
                 self.request.shutdown(socket.SHUT_RDWR)
                 self.request.close()
                 return
+
             # logger.info(f"message is {message}")
             # logger.info(f"type of self.request is {type(self.request)} after read")
         except:

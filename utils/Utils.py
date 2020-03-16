@@ -114,9 +114,9 @@ class Utils(object):
                     pass
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #socket.create_connection(peer(), timeout=30) as s:
                     s.connect(peer())
-                    #logger.info(f'[Utils] succeed to create socket connection with {peer}')
+                    #logger.info(f'[utils] succeed to create socket connection with {peer}')
                     s.sendall(cls.encode_socket_data(data))
-                    #logger.info(f'[Utils] succeed to send data to {peer}')
+                    #logger.info(f'[utils] succeed to send data to {peer}')
             except ConnectionRefusedError as e:
                 logger.exception(f'[utils] {repr(e)}, failed to send to {peer} data about {Actions.num2name[str(data.action)] if hasattr(data, "action") else None} '
                                  f' in {Params.TRIES_MAXIMUM+1-tries_left}th time')
@@ -205,9 +205,17 @@ class Utils(object):
         data = b''
         # Our protocol is: first 4 bytes signify msg length.
         msg_len = int(binascii.hexlify(req.recv(4) or b'\x00'), 16)
+        logger.info(f"[utils] message length is {msg_len}")
 
         while msg_len > 0:
             tdat = req.recv(1024)
+
+            # If msg_len > 0 and len(tdat) == 0,
+            # means that message is invalid.
+            # Return None to TCPHandler.
+            if len(tdat) == 0:
+                return None
+
             data += tdat
             msg_len -= len(tdat)
 
