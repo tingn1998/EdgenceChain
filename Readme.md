@@ -47,3 +47,5 @@ pip install -r requirements.txt
 在 EdgenceChain 工程目录下执行 `python main.py`. 会默认运行服务端监听进程，挖矿进程，区块同步进程。
 
 若要只运行服务端监听进程，执行 `python listening.py`.
+
+如果让服务端只监听来自 localhost 的请求，将 `params/Params.py` 中的 `RECEIVE_LOCALHOST_MSG` 设置为 `True`。

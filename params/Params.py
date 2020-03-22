@@ -1,13 +1,18 @@
-
 from typing import (
-    Iterable, NamedTuple, Dict, Mapping, Union, get_type_hints, Tuple,
-    Callable)
+    Iterable,
+    NamedTuple,
+    Dict,
+    Mapping,
+    Union,
+    get_type_hints,
+    Tuple,
+    Callable,
+)
 
 
 class Params:
     # The infamous max block size.
     MAX_BLOCK_SERIALIZED_SIZE = int(1000000)  # bytes = 1MB
-
 
     COINBASE_MATURITY = int(2)
 
@@ -40,7 +45,8 @@ class Params:
     #
     # #realname DifficultyAdjustmentInterval
     DIFFICULTY_PERIOD_IN_BLOCKS = int(
-        DIFFICULTY_PERIOD_IN_SECS_TARGET / TIME_BETWEEN_BLOCKS_IN_SECS_TARGET)
+        DIFFICULTY_PERIOD_IN_SECS_TARGET / TIME_BETWEEN_BLOCKS_IN_SECS_TARGET
+    )
 
     # The number of right-shifts applied to 2 ** 256 in order to create the
     # initial difficulty target necessary for mining a block.
@@ -63,12 +69,19 @@ class Params:
     MAXIMUM_ALLOWABLE_HEIGHT_DIFF = 15
     MAXIMUM_FAILURE_PEER = 50
 
-    PUBLIC_IP = '127.0.0.1'
+    PUBLIC_IP = "127.0.0.1"
     PORT_CURRENT = int(9999)
-    PEERS_FILE = 'seeds.node'
-    CHAIN_FILE = 'chain.dat'
-    WALLET_FILE = 'mywallet.dat'
-    PEERS: Iterable[Tuple] = list([
-                     ])
+    PEERS_FILE = "seeds.node"
+    CHAIN_FILE = "chain.dat"
+    WALLET_FILE = "mywallet.dat"
+    PEERS: Iterable[Tuple] = list([])
 
+    # There will be many other machines that will try to connect
+    # to our port. If flag "RECEIVE_LOCALHOST_MSG" is True, 
+    # only localhost address "127.0.0.1" will be allowed to connect to our server. 
+    # If you want to receive all message from other peers, 
+    # set this flag = False.
+    RECEIVE_LOCALHOST_MSG = False         
 
+    # Used in Utils.send_to_peer() function
+    TRIES_MAXIMUM = 3

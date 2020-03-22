@@ -128,7 +128,17 @@ class TCPHandler(socketserver.BaseRequestHandler):
         try:
             # logger.info(f'type of self.request is {type(self.request)} before read')
 
-            logger.info(f"[p2p] start handling message from {self.request.getpeername()[0]}")
+            # Get request ip.
+            req_ip = self.request.getpeername()[0]
+            logger.info(f"[p2p] start handling message from {req_ip}")
+
+            # If RECEIVE_LOCALHOST_MSG flag is True, check req_ip is 127.0.0.1 or not.
+            # If not, shutdown this socket connection.
+            if Params.RECEIVE_LOCALHOST_MSG and str(req_ip) != "127.0.0.1":
+                logger.info(f"[p2p] Only receive message from localhost, close socket connection. Caused by RECEIVE_LOCALHOST_MSG in params/Params.py")
+                self.request.shutdown(socket.SHUT_RDWR)
+                self.request.close()
+                return
 
             # If message is invalid from other peers,
             # like sending a meanningless info which will be translated by Utils.read_all_from_socket()
@@ -147,19 +157,19 @@ class TCPHandler(socketserver.BaseRequestHandler):
             # logger.info(f"type of self.request is {type(self.request)} after read")
         except:
             logger.exception(
-                f"[p2p] invalid meassage from peer {self.request.getpeername()[0]}"
+                f"[p2p] invalid meassage from peer {req_ip}"
             )
             return
 
         if not isinstance(message, Message):
             logger.info(
-                f"[p2p] not a valid Message from peer {self.request.getpeername()[0]}"
+                f"[p2p] not a valid Message from peer {req_ip}"
             )
             self.request.shutdown(socket.SHUT_RDWR)
             self.request.close()
             return
         else:
-            peer = Peer(str(self.request.getpeername()[0]), int(message.port))
+            peer = Peer(str(req_ip), int(message.port))
 
         action = int(message.action)
 
