@@ -124,6 +124,8 @@ class ListeningServer(object):
             self.peers_lock,
         )
 
+        # This is a single server without initializing block download from other peers.
+        # So set ibd_done and let this listening server run.
         self.ibd_done.set()
 
         server.serve_forever()

@@ -1,52 +1,46 @@
 import binascii
-import time
-import json
-import hashlib
 import copy
-import threading
-import _thread
+import hashlib
+import json
 import logging
-import socketserver
-import socket
-import random
 import os
+import random
+import socket
+import socketserver
+import threading
+import time
 from functools import lru_cache, wraps
 from typing import (
-    Iterable,
-    NamedTuple,
+    Callable,
     Dict,
+    Iterable,
     Mapping,
+    NamedTuple,
+    Tuple,
     Union,
     get_type_hints,
-    Tuple,
-    Callable,
 )
-from ds.Transaction import Transaction
-from ds.Block import Block
-from ds.UnspentTxOut import UnspentTxOut
-from ds.OutPoint import OutPoint
-from utils.Errors import BlockValidationError
-from utils.Utils import Utils
-from params.Params import Params
-from ds.BlockStats import BlockStats
 
-from p2p.Message import Message
-
-from p2p.Peer import Peer
-from p2p.PeerManager import PeerManager
-from ds.BaseUTXO_Set import BaseUTXO_Set
+import _thread
 from ds.BaseMemPool import BaseMemPool
+from ds.BaseUTXO_Set import BaseUTXO_Set
+from ds.Block import Block
 from ds.BlockChain import BlockChain
+from ds.BlockStats import BlockStats
+from ds.MerkleNode import MerkleNode
+from ds.OutPoint import OutPoint
+from ds.Transaction import Transaction
 from ds.TxIn import TxIn
 from ds.TxOut import TxOut
-from ds.MerkleNode import MerkleNode
-
-from p2p.Message import Message
-from p2p.Message import Actions
+from ds.UnspentTxOut import UnspentTxOut
+from p2p.Message import Actions, Message
+from p2p.Peer import Peer
+from p2p.PeerManager import PeerManager
+from params.Params import Params
 from persistence import Persistence
-
 from script import scriptBuild
-
+from utils.Errors import BlockValidationError
+from utils.Utils import Utils
 
 logging.basicConfig(
     level=getattr(logging, os.environ.get("TC_LOG_LEVEL", "INFO")),
@@ -135,7 +129,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
             # If RECEIVE_LOCALHOST_MSG flag is True, check req_ip is 127.0.0.1 or not.
             # If not, shutdown this socket connection.
             if Params.RECEIVE_LOCALHOST_MSG and str(req_ip) != "127.0.0.1":
-                logger.info(f"[p2p] Only receive message from localhost, close socket connection. Caused by RECEIVE_LOCALHOST_MSG in params/Params.py")
+                logger.info(
+                    f"[p2p] Only receive message from localhost, close socket connection. Caused by RECEIVE_LOCALHOST_MSG in params/Params.py"
+                )
                 self.request.shutdown(socket.SHUT_RDWR)
                 self.request.close()
                 return
@@ -156,15 +152,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
             # logger.info(f"message is {message}")
             # logger.info(f"type of self.request is {type(self.request)} after read")
         except:
-            logger.exception(
-                f"[p2p] invalid meassage from peer {req_ip}"
-            )
+            logger.exception(f"[p2p] invalid meassage from peer {req_ip}")
             return
 
         if not isinstance(message, Message):
-            logger.info(
-                f"[p2p] not a valid Message from peer {req_ip}"
-            )
+            logger.info(f"[p2p] not a valid Message from peer {req_ip}")
             self.request.shutdown(socket.SHUT_RDWR)
             self.request.close()
             return
@@ -521,7 +513,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
         for tx, block, height in _txn_iterator(self.active_chain.chain):
             if tx.id == txid:
                 status = (
-                    1  # f'txn {txid} is mined in block {block.id} at height {height}'
+                    # f'txn {txid} is mined in block {block.id} at height {height}'
+                    1
                 )
                 message = Message(Actions.TxStatusRev, status, Params.PORT_CURRENT)
                 self.request.sendall(Utils.encode_socket_data(message))
