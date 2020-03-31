@@ -34,11 +34,13 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. 节点端口设置
+### 3. 节点配置
 
 1. 当前结点端口的设置是在 `params/Params.py` 的 `PORT_CURRENT` 字段。 举例：将该节点的端口设置为9997: `PORT_CURRENT = int(9997)`
 
-2. 如果该节点要与已经在运行的 EdgenceChain 主网，则需要提前配置种子节点。其位于 `params/Params.py` 的 PEERS 字段，节点由一个 Tuple 类型的 `(ip,port)` 表示其 ip 和 port 信息。可以配置多个这样的节点: `PEERS: Iterable[Tuple] = list([("127.0.0.1", 9997)])`
+2. 如果该节点要与已经在运行的 EdgenceChain 主网，则需要提前配置种子节点。其位于 `params/Params.py` 的 `PEERS` 字段，节点由一个 Tuple 类型的 `(ip,port)` 表示其 ip 和 port 信息。可以配置多个这样的节点: `PEERS: Iterable[Tuple] = list([("127.0.0.1", 9997)])`
+
+3. 如果该节点要通过任何的网络接口 (ip) 和其他节点连接，需要将 `params/Params.py` 文件下的 `PUBLIC_IP` 字段修改为你所使用的 ip 地址。
 
 ### 4. 节点运行
 
