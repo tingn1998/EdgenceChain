@@ -91,7 +91,7 @@ class Peer(namedtuple("ip_port", "ip, port")):
     def init_peers(cls, peerfile=Params.PEERS_FILE) -> Iterable[namedtuple]:
         """
         If peers_file doesnot exist, read peers from paramater in params/Params.py 
-        and save them to peers_file.
+        and save them to peers_file, else read peer from peerfile.
         """
 
         peers: Iterable[Peer] = []

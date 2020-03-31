@@ -69,6 +69,8 @@ class Params:
     MAXIMUM_ALLOWABLE_HEIGHT_DIFF = 15
     MAXIMUM_FAILURE_PEER = 50
 
+    # TODO: PUBLIC_IP should be updated when program detects ip 
+    # which this program instance is using.
     PUBLIC_IP = "127.0.0.1"
     PORT_CURRENT = int(9999)
     PEERS_FILE = "seeds.node"

@@ -81,6 +81,8 @@ def load_from_disk(active_chain: BlockChain, utxo_set: UTXO_Set, CHAIN_PATH=Para
         logger.info(f"[persistence] chain storage file does not exist")
         return
     else:
+        # active_chain.chain is a list initialized with genesis_block
+        # so len(active_chain.chain) should equals to 1
         if len(active_chain.chain) > 1:
             logger.info(
                 f"[persistence] more than the genesis block exists, load_from_disk stopped and return"
