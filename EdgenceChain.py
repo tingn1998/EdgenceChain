@@ -77,8 +77,8 @@ class EdgenceChain(object):
 
         self.mine_interrupt: threading.Event = threading.Event()
         self.ibd_done: threading.Event = threading.Event()
-        self.chain_lock: _thread.RLock = threading.RLock()
-        self.peers_lock: _thread.RLock = threading.RLock()
+        self.chain_lock: threading.RLock = threading.RLock()
+        self.peers_lock: threading.RLock = threading.RLock()
 
         self.gs = dict()
         (
