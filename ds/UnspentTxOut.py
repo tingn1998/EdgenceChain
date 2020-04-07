@@ -1,6 +1,13 @@
 from typing import (
-    Iterable, NamedTuple, Dict, Mapping, Union, get_type_hints, Tuple,
-    Callable)
+    Iterable,
+    NamedTuple,
+    Dict,
+    Mapping,
+    Union,
+    get_type_hints,
+    Tuple,
+    Callable,
+)
 
 from ds.OutPoint import OutPoint
 

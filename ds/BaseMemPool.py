@@ -1,6 +1,4 @@
-
 class BaseMemPool(object):
-
     def __init__(self):
         self.mempool = {}
         self.orphan_txns = []

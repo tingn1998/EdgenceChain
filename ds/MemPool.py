@@ -1,9 +1,15 @@
-# mempool  Set of yet-unmined transactions.
 import logging
 import os
 from typing import (
-    Iterable, NamedTuple, Dict, Mapping, Union, get_type_hints, Tuple,
-    Callable)
+    Iterable,
+    NamedTuple,
+    Dict,
+    Mapping,
+    Union,
+    get_type_hints,
+    Tuple,
+    Callable,
+)
 
 from ds.Block import Block
 from ds.UnspentTxOut import UnspentTxOut
@@ -12,17 +18,24 @@ from ds.TxIn import TxIn
 from ds.UTXO_Set import UTXO_Set
 from params.Params import Params
 from utils.Utils import Utils
-from utils.Errors import (BaseException, TxUnlockError, TxnValidationError, BlockValidationError)
+from utils.Errors import (
+    BaseException,
+    TxUnlockError,
+    TxnValidationError,
+    BlockValidationError,
+)
 from p2p.Peer import Peer
 from ds.BaseMemPool import BaseMemPool
 from ds.BaseUTXO_Set import BaseUTXO_Set
 
 logging.basicConfig(
-    level=getattr(logging, os.environ.get('TC_LOG_LEVEL', 'INFO')),
-    format='[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s')
+    level=getattr(logging, os.environ.get("TC_LOG_LEVEL", "INFO")),
+    format="[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 
+# mempool  Set of yet-unmined transactions.
 class MemPool(BaseMemPool):
     def __init__(self):
         self.mempool: Dict[str, Transaction] = {}
@@ -32,6 +45,9 @@ class MemPool(BaseMemPool):
         return self.mempool
 
     def find_utxo_in_mempool(self, txin: TxIn) -> UnspentTxOut:
+        """
+        Given a txin, find utxo in mempool.
+        """
         txid, idx = txin.to_spend
 
         try:
@@ -41,12 +57,15 @@ class MemPool(BaseMemPool):
             return None
 
         return UnspentTxOut(
-            *txout, txid=txid, is_coinbase=False, height=-1, txout_idx=idx)
-
+            *txout, txid=txid, is_coinbase=False, height=-1, txout_idx=idx
+        )
 
     def select_from_mempool(self, block: Block, utxo_set: UTXO_Set) -> Block:
-        """Fill a Block with transactions from the mempool."""
-        added_to_block = set()
+        """
+        Fill a Block with transactions from the mempool.
+        """
+
+        added_to_block: set = set()
 
         def check_block_size(block) -> bool:
             return len(Utils.serialize(block)) < Params.MAX_BLOCK_SERIALIZED_SIZE
@@ -78,7 +97,7 @@ class MemPool(BaseMemPool):
             newblock = block._replace(txns=[*block.txns, tx])
 
             if check_block_size(newblock):
-                logger.debug(f'[ds] added tx {tx.id} to block')
+                logger.debug(f"[ds] added tx {tx.id} to block")
                 added_to_block.add(txid)
                 return newblock
             else:
@@ -94,10 +113,13 @@ class MemPool(BaseMemPool):
 
         return block
 
-
     def add_txn_to_mempool(self, txn: Transaction, utxo_set: BaseUTXO_Set) -> bool:
+        """
+        Add txn to be verified into mempool.
+        """
+
         if txn.id in self.mempool:
-            logger.info(f'[ds] txn {txn.id} already seen')
+            logger.info(f"[ds] txn {txn.id} already seen")
             return None
 
         try:
@@ -107,14 +129,13 @@ class MemPool(BaseMemPool):
 
         except TxnValidationError as e:
             if e.to_orphan:
-                logger.info(f'[ds] txn {e.to_orphan.id} submitted as orphan')
+                logger.info(f"[ds] txn {e.to_orphan.id} submitted as orphan")
                 self.orphan_txns.append(e.to_orphan)
             else:
-                logger.exception(f'[ds] txn rejected')
+                logger.exception(f"[ds] txn rejected")
             return None
         else:
-            logger.info(f'[ds] txn {txn.id} added to mempool')
+            logger.info(f"[ds] txn {txn.id} added to mempool")
             self.mempool[txn.id] = txn
 
             return True
-

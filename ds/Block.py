@@ -44,8 +44,6 @@ from script import scriptBuild
 import ecdsa
 from base58 import b58encode_check
 
-from _thread import RLock
-
 
 logging.basicConfig(
     level=getattr(logging, os.environ.get("TC_LOG_LEVEL", "INFO")),
@@ -113,6 +111,10 @@ class Block(NamedTuple):
 
     @classmethod
     def get_block_subsidy(cls, active_chain: BaseBlockChain) -> int:
+        """
+        After specific number of blocks, subsidy of mining a block will be halved.
+        """
+
         halvings = active_chain.height // Params.HALVE_SUBSIDY_AFTER_BLOCKS_NUM
 
         if halvings >= 64:
@@ -127,6 +129,10 @@ class Block(NamedTuple):
         active_chain: BaseBlockChain,
         side_branches: Iterable[BaseBlockChain] = None,
     ):
+        """
+        Using block_hash to get a tuple (block, height, chain_idx)
+        """
+
         chains = (
             [active_chain] if side_branches is None else [active_chain, *side_branches]
         )
@@ -148,11 +154,11 @@ class Block(NamedTuple):
         active_chain: BaseBlockChain,
         side_branches: Iterable[BaseBlockChain] = None,
     ) -> int:
-
         """
         Based on the chain, return the number of difficulty bits the next block
         must solve.
         """
+
         if not prev_block_hash:
             return Params.INITIAL_DIFFICULTY_BITS
 
@@ -171,7 +177,9 @@ class Block(NamedTuple):
             period_start_block = active_chain.chain[
                 max(prev_height - Params.DIFFICULTY_PERIOD_IN_BLOCKS, 0)
             ]
+
         elif side_branches is None:
+
             prev_block, prev_height = active_chain.chain[-1], active_chain.height
 
             if prev_height % Params.DIFFICULTY_PERIOD_IN_BLOCKS != 0:
@@ -180,6 +188,7 @@ class Block(NamedTuple):
             period_start_block = active_chain.chain[
                 max(prev_height - Params.DIFFICULTY_PERIOD_IN_BLOCKS, 0)
             ]
+
         else:
             pass
 
@@ -209,6 +218,7 @@ class Block(NamedTuple):
             spent = sum(find_utxo(i).value for i in txn.txins)
             sent = sum(o.value for o in txn.txouts)
             fee += spent - sent
+
         if len(self.txns[1:]) > 0:
             logger.info(
                 f"[ds] fees for {len(self.txns[1:])} non-coinbase transactions in this block: {fee}"
@@ -304,9 +314,6 @@ class Block(NamedTuple):
                 if prev_block == side_branches[prev_block_chain_idx - 1].chain[-1]:
                     return prev_block_chain_idx
                 else:
-                    # branch_fork_height =  Block.locate_block(self.prev_block_hash, side_branches[prev_block_chain_idx-1])[1]
-
-                    # raise BlockValidationError('branch of an existing branch chain, which is not supported')
                     return len(side_branches) + 1
 
             # Prev. block found in active chain, but isn't tip => new fork.

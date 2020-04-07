@@ -1,7 +1,5 @@
 class BaseBlockChain(object):
-
-
-    def __init__(self, idx: int=0, chain = []):
+    def __init__(self, idx: int = 0, chain=[]):
         self.index = idx
         self.chain = chain
 
@@ -19,6 +17,6 @@ class BaseBlockChain(object):
     def disconnect_block(self, mempool, utxo_set):
         pass
 
-    def connect_block(self, block, active_chain, side_branches, mempool, utxo_set, mine_interrupt,\
+    def connect_block(self, block, active_chain, side_branches, mempool, utxo_set, mine_interrupt,
                       doing_reorg):
         pass

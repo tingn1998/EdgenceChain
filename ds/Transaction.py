@@ -20,10 +20,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Used to represent the specific output within a transaction.
-
 
 class ActionId(IntEnum):
+    """
+    Some transaction may indicates some actions. See Class Transaction.actionId.
+    """
     VOTE_PROPOSAL = 1
     POST_2ND_LAYER_ID = 2
     DISTRIBUTE_TASK = 3
@@ -39,6 +40,7 @@ class Transaction(NamedTuple):
     txins: Iterable[TxIn]
     txouts: Iterable[TxOut]
 
+    # extra fields for futher use
     serviceId: str
     postId: str
     actionId: ActionId
@@ -48,10 +50,16 @@ class Transaction(NamedTuple):
 
     @property
     def is_coinbase(self) -> bool:
+        """
+        If a tx is coinbase, only one txin is in it.
+        """
         return len(self.txins) == 1 and self.txins[0].to_spend is None
 
     @classmethod
     def create_coinbase(cls, pay_to_addr, value, height):
+        """
+        Only mining can create a new block with first tx is coinbase.
+        """
         return cls(
             txins=[
                 TxIn(
@@ -76,7 +84,7 @@ class Transaction(NamedTuple):
             actionId=None,
             postId=None,
             data=None,
-            locktime=None
+            locktime=None,
         )
 
     @property
