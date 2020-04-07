@@ -34,8 +34,8 @@ print(f"merkle_hash={merkle_hash.val}")
 
 genesis_block = Block(
     version="5465616d3a20456467656e63650a4c65616465723a20776f6c6662726f746865720a4d656d626572733a2063626f7a69"
-            "2c204c6561684c69752c207069616f6c69616e676b622c2053616c7661746f7265303632362c2053696c7669614c69313"
-            "232352c204a69617169204c69752c2078696179756e696c0a",
+    "2c204c6561684c69752c207069616f6c69616e676b622c2053616c7661746f7265303632362c2053696c7669614c69313"
+    "232352c204a69617169204c69752c2078696179756e696c0a",
     prev_block_hash=None,
     merkle_hash=merkle_hash.val,
     timestamp=1554460209,
@@ -44,6 +44,7 @@ genesis_block = Block(
     txns=txns,
 )
 
+
 def mine(block: Block) -> Block:
     """
     A minimal function for calculating genisis_block nonce.
@@ -51,17 +52,20 @@ def mine(block: Block) -> Block:
 
     start = time.time()
     nonce = 0
-    target = (1 << (256 - block.bits))
+    target = 1 << (256 - block.bits)
 
     while int(Utils.sha256d(block.header(nonce)), 16) >= target:
         nonce += 1
-    
+
     block = block._replace(nonce=nonce)
     duration = max(time.time() - start, 0.0001)
     khs = (block.nonce // duration) // 1_000
-    print(f"genesis_block found at nonce={nonce} using {round(duration, 4)}s at rate {khs}KH/s")
+    print(
+        f"genesis_block found at nonce={nonce} using {round(duration, 4)}s at rate {khs}KH/s"
+    )
     print(f"blockid={block.id}")
     return block
+
 
 genesis_block = mine(genesis_block)
 
