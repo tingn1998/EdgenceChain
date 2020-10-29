@@ -10,11 +10,14 @@ EdgenceChain is the blockchain part behind Edgence project. It helps to construc
 
 所需 Python 环境 3.6.7，下载地址 https://www.python.org/ftp/python/3.6.7/Python-3.6.7.tgz 
 
+依赖安装参考：https://github.com/EdgeIntelligenceChain/EdgenceChain/issues/57#issuecomment-472751311
+
+下载完毕 Python-3.6.7.tgz 后，执行如下指令：
+
 ```
 tar -xzf Python-3.6.7.tgz
 cd Python-3.6.7
 ./configure --enable-optimizations  --prefix=/usr/local/python3.6.7/
-#prefix参数配置安装路径
 make 
 sudo make install
 ```
