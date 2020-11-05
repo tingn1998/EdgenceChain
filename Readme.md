@@ -52,3 +52,10 @@ pip install -r requirements.txt
 若要只运行服务端监听进程，执行 `python listening.py`.
 
 如果让服务端只监听来自 localhost 的请求，将 `params/Params.py` 中的 `RECEIVE_LOCALHOST_MSG` 设置为 `True`。
+
+## Docker 启动
+
+```
+docker build -t edgence:latest .
+docker run -p 9999:9999 edgence
+```
