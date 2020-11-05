@@ -58,4 +58,6 @@ pip install -r requirements.txt
 ```
 docker build -t edgence:latest .
 docker run -p 9999:9999 edgence
+// mount config file
+docker run -p 9999:9999 -v $(pwd)/params/Params.py:/code/params/Params.py edgence
 ```
