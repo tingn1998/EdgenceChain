@@ -1,0 +1,23 @@
+# 虚拟机运行程序端口号：9997
+# 容器内运行程序端口号：9999
+# Dockerfile文件内容
+
+FROM python:3.6
+RUN  apt-get install git  \
+      &&   git clone https://github.com/EdgeIntelligenceChain/EdgenceChain  \
+      && cd EdgenceChain \
+      &&  sed -i '9d' requirements.txt \
+      && pip install -r requirements.txt \
+      && cd params \ 
+      && sed 's/list\(\[\]\)/list\(\[\(\"127\.0\.0\.1\"\,9997\)\]\)/g' Params.py
+EXPOSE 80
+WORKDIR /EdgenceChain
+CMD python3 main.py
+
+
+虚拟机上运行：python3 main.py
+
+虚拟机上重开一个命令窗口，跳转到目录：mydocker，build生成镜像：docker build -f /mydocker/DockerFile -t ntt/edgence .
+
+容器运行：docker run -it ntt/edgence
+
